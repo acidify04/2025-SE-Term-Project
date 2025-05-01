@@ -49,16 +49,21 @@ public class YutGame {
      * 무작위 윷 던지기.
      */
     public YutThrowResult throwYutRandom() {
-        int r = random.nextInt(6); // 0~5
-        YutThrowResult result = switch (r) {
-            case 0 -> YutThrowResult.BAK_DO;
-            case 1 -> YutThrowResult.DO;
-            case 2 -> YutThrowResult.GAE;
-            case 3 -> YutThrowResult.GEOL;
-            case 4 -> YutThrowResult.YUT;
-            case 5 -> YutThrowResult.MO;
-            default -> YutThrowResult.DO; // fallback
-        };
+        int r = random.nextInt(16);
+        YutThrowResult result;
+        if (r == 0) {
+            result = YutThrowResult.BAK_DO;
+        } else if (r == 1 || r == 2 || r == 3) {
+            result = YutThrowResult.DO;
+        } else if (r == 4 || r == 5 || r == 6 || r == 7) {
+            result = YutThrowResult.GEOL;
+        } else if (r == 8) {
+            result = YutThrowResult.YUT;
+        } else if (r == 9) {
+            result = YutThrowResult.MO;
+        } else {
+            result = YutThrowResult.GAE;
+        }
         this.lastThrowResult = result;
         return result;
     }
