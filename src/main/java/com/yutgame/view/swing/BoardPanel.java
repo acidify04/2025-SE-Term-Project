@@ -16,15 +16,13 @@ import java.util.List;
  * 실제 윷놀이판(노드, 말)을 그리는 JPanel.
  * - 노드 간 라인
  * - 노드 원
- * - 말 아이콘
+ * - 말 아이콘 (플레이어별로 구분)
  */
 public class BoardPanel extends JPanel {
 
     private YutGame game;
-
-    // 말 아이콘 (플레이어별로 다르게 표시 가능)
     private Image pieceIconP1;
-    private Image pieceIconP2;
+    private Image pieceIconP2; // TODO: 플레이어 명수 선택 받도록 수정
 
     // 노드/말 원의 크기 지정
     private static final int NODE_SIZE = 40;
@@ -33,7 +31,7 @@ public class BoardPanel extends JPanel {
     public BoardPanel(YutGame game) {
         this.game = game;
 
-        // 아이콘 로드 (프로젝트 구조에 따라 경로 수정 필요)
+        // TODO: 각 플레이어마다 아이콘 이미지 추가 및 설정 필요
         pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p1.png");
         pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p2.png");
 
@@ -44,8 +42,6 @@ public class BoardPanel extends JPanel {
                 BoardNode clickedNode = findNodeAt(e.getX(), e.getY());
                 if (clickedNode != null) {
                     System.out.println("Node clicked: " + clickedNode.getId());
-                    // 여기서 직접 말 이동 로직을 할 수도 있지만,
-                    // MVC 설계상 SwingYutGameView가 주도하거나 Controller가 주도하는 편이 좋음.
                 }
             }
         });
@@ -54,30 +50,27 @@ public class BoardPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // 흰 배경
+        // 배경
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, getWidth(), getHeight());
 
-        // 노드 간 라인 먼저 그림
-        Board board = game.getBoard();
-        for (BoardNode node : board.getNodes()) {
-            drawNodeConnections(g, node);
+        // 노드 간 연결 라인
+        List<BoardNode> nodes = game.getBoard().getNodes();
+        g.setColor(Color.GRAY);
+        for (BoardNode node : nodes) {
+            drawConnections(g, node);
         }
 
-        // 그 다음 노드 원, occupantPieces
-        for (BoardNode node : board.getNodes()) {
+        // 노드, 말
+        for (BoardNode node : nodes) {
             drawNode(g, node);
-            drawPiecesOnNode(g, node);
+            drawPieces(g, node);
         }
     }
 
-    /**
-     * 노드와 nextNodes를 라인으로 연결.
-     */
-    private void drawNodeConnections(Graphics g, BoardNode node) {
-        int x1 = node.getX() + NODE_SIZE/2;  // 원 중앙
+    private void drawConnections(Graphics g, BoardNode node) {
+        int x1 = node.getX() + NODE_SIZE/2;
         int y1 = node.getY() + NODE_SIZE/2;
-        g.setColor(Color.GRAY);
         for (BoardNode next : node.getNextNodes()) {
             int x2 = next.getX() + NODE_SIZE/2;
             int y2 = next.getY() + NODE_SIZE/2;
@@ -85,9 +78,6 @@ public class BoardPanel extends JPanel {
         }
     }
 
-    /**
-     * 노드 자체(원)와 ID 텍스트 표시.
-     */
     private void drawNode(Graphics g, BoardNode node) {
         int x = node.getX();
         int y = node.getY();
@@ -97,33 +87,28 @@ public class BoardPanel extends JPanel {
         g.setColor(Color.BLACK);
         g.drawOval(x, y, NODE_SIZE, NODE_SIZE);
 
-        // 노드 ID
+        // 노드 ID 표시
         g.drawString(node.getId(), x, y - 5);
     }
 
-    /**
-     * 노드 위에 있는 말들을 그린다.
-     */
-    private void drawPiecesOnNode(Graphics g, BoardNode node) {
+    private void drawPieces(Graphics g, BoardNode node) {
         List<Piece> pieces = node.getOccupantPieces();
         for (int i = 0; i < pieces.size(); i++) {
             Piece p = pieces.get(i);
             Image icon = pickIconForPlayer(p.getOwner());
 
-            // 말이 여러 개 겹치면 약간씩 오프셋
-            int offsetX = (i % 3) * 10;
-            int offsetY = (i / 3) * 10;
+//            // 말 업었을 때 겹칠 때 오프셋
+//            int offsetX = (i % 3) * 10;
+//            int offsetY = (i / 3) * 10;
 
-            int px = node.getX() + 5 + offsetX;
-            int py = node.getY() + 5 + offsetY;
+            int px = node.getX() + 5 + (i*10);
+            int py = node.getY() + 5 + (i*10);
 
             g.drawImage(icon, px, py, PIECE_SIZE, PIECE_SIZE, this);
         }
     }
 
-    /**
-     * 플레이어 이름에 따라 다른 아이콘 선택.
-     */
+    // TODO: 인원수 입력 받으면 수정
     private Image pickIconForPlayer(Player owner) {
         if ("P1".equals(owner.getName())) {
             return pieceIconP1;
@@ -132,9 +117,6 @@ public class BoardPanel extends JPanel {
         }
     }
 
-    /**
-     * (마우스) 클릭 좌표가 어느 노드의 원 범위인지 판별.
-     */
     private BoardNode findNodeAt(int mx, int my) {
         for (BoardNode node : game.getBoard().getNodes()) {
             int nx = node.getX();
@@ -145,9 +127,5 @@ public class BoardPanel extends JPanel {
             }
         }
         return null;
-    }
-
-    public YutGame getGame() {
-        return game;
     }
 }
