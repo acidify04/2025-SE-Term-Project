@@ -44,25 +44,14 @@ public class SwingYutGameView extends JFrame {
     private void initButtonListeners() {
         randomThrowButton.addActionListener(e -> {
             isRandomThrow = true;
-            YutThrowResult selected;
-            selected = game.throwYutRandom();
+            YutThrowResult selected = game.throwYutRandom();
             processAllThrows(selected);
-
-            if (game.hasExtraTurnFlag()) {
-                selected = game.throwYutRandom();
-                processAllThrows(selected);
-            }
         });
 
         manualThrowButton.addActionListener(e -> {
             isRandomThrow = false;
             YutThrowResult selected = getSetYutResult();
             processAllThrows(selected);
-
-            if (game.hasExtraTurnFlag()) {
-                selected = game.throwYutRandom();
-                processAllThrows(selected);
-            }
         });
     }
 
