@@ -14,9 +14,59 @@ public class SwingYutGameView extends JFrame {
     private JButton randomThrowButton;
     private JButton manualThrowButton;
 
-    public SwingYutGameView(YutGame game) {
-        this.game = game;
+    public SwingYutGameView() {
+        // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
+        Integer playerCount = null;
+        while (playerCount == null || playerCount < 2 || playerCount > 4) {
+            String input = JOptionPane.showInputDialog(
+                    null,
+                    "플레이어 수를 입력하세요 (2~4):",
+                    "게임 설정",
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (input == null) {
+                System.exit(0);
+            }
+            try {
+                playerCount = Integer.parseInt(input);
+            } catch (NumberFormatException ex) {
+                playerCount = null;
+            }
+        }
 
+        Integer pieceCount = null;
+        while (pieceCount == null || pieceCount < 2 || pieceCount > 5) {
+            String input = JOptionPane.showInputDialog(
+                    null,
+                    "각 플레이어의 말 개수를 입력하세요 (2~5):",
+                    "게임 설정",
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (input == null) {
+                System.exit(0);
+            }
+            try {
+                pieceCount = Integer.parseInt(input);
+            } catch (NumberFormatException ex) {
+                pieceCount = null;
+            }
+        }
+
+        List<Player> players = new ArrayList<>();
+        for (int i = 1; i <= playerCount; i++) {
+            Player player = new Player("P" + i, new ArrayList<>());
+            for (int j = 0; j < pieceCount; j++) {
+                Piece piece = new Piece(player);
+                player.getPieces().add(piece);
+            }
+            players.add(player);
+        }
+
+        YutBoard board = SquareBoard.createStandardBoard();
+        this.game = new YutGame(players, board);
+        // ----------------------------------------------------------
+
+        // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
         setTitle("Swing Yut Game");
         setSize(700, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -36,6 +86,7 @@ public class SwingYutGameView extends JFrame {
         initButtonListeners();
 
         game.startGame();
+        // ----------------------------------------------------------
     }
 
     private void initButtonListeners() {
