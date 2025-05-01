@@ -47,4 +47,10 @@ public class Player {
         }
         return true;
     }
+    /**
+     * 완주한 말의 개수를 반환
+     */
+    public long getFinishedCount() {
+        return pieces.stream().filter(Piece::isFinished).count();
+    }
 }

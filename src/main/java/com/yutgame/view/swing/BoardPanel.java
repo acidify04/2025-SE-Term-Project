@@ -27,7 +27,6 @@ public class BoardPanel extends JPanel {
     public BoardPanel(YutGame game) {
         this.game = game;
 
-        // TODO: 각 플레이어마다 아이콘 이미지 추가 및 설정 필요
         pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p1.png");
         pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p2.png");
 
@@ -50,17 +49,37 @@ public class BoardPanel extends JPanel {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, getWidth(), getHeight());
 
-        // 노드 간 연결 라인
-        List<BoardNode> nodes = game.getBoard().getNodes();
+        // 상단에 점수판
+        drawScoreBoard(g);
+
+        // 노드 연결선
         g.setColor(Color.GRAY);
-        for (BoardNode node : nodes) {
-            drawConnections(g, node);
+        for (BoardNode node : game.getBoard().getNodes()) {
+            int x1 = node.getX() + NODE_SIZE/2;
+            int y1 = node.getY() + NODE_SIZE/2;
+            for (BoardNode nxt : node.getNextNodes()) {
+                int x2 = nxt.getX() + NODE_SIZE/2;
+                int y2 = nxt.getY() + NODE_SIZE/2;
+                g.drawLine(x1, y1, x2, y2);
+            }
         }
 
-        // 노드, 말
-        for (BoardNode node : nodes) {
+        // 노드와 말
+        for (BoardNode node : game.getBoard().getNodes()) {
             drawNode(g, node);
             drawPieces(g, node);
+        }
+    }
+
+    private void drawScoreBoard(Graphics g) {
+        List<Player> players = game.getPlayers();
+        g.setColor(Color.BLACK);
+        g.setFont(new Font("SansSerif", Font.BOLD, 14));
+        int x = 10, y = 20;
+        for (Player p : players) {
+            String text = p.getName() + ": " + p.getFinishedCount() + "개 완주";
+            g.drawString(text, x, y);
+            x += 150;
         }
     }
 
@@ -88,19 +107,15 @@ public class BoardPanel extends JPanel {
     }
 
     private void drawPieces(Graphics g, BoardNode node) {
-        List<Piece> pieces = node.getOccupantPieces();
-        for (int i = 0; i < pieces.size(); i++) {
-            Piece p = pieces.get(i);
-            Image icon = pickIconForPlayer(p.getOwner());
-
-//            // 말 업었을 때 겹칠 때 오프셋
-//            int offsetX = (i % 3) * 10;
-//            int offsetY = (i / 3) * 10;
-
-            int px = node.getX() + 5 + (i*10);
-            int py = node.getY() + 5 + (i*10);
-
-            g.drawImage(icon, px, py, PIECE_SIZE, PIECE_SIZE, this);
+        int idx = 0;
+        for (Piece p : node.getOccupantPieces()) {
+            // 캡처되거나 완주된 말은 그리지 않음
+            if (p.isFinished() || p.getCurrentNode() == null) continue;
+            Image img = "P1".equals(p.getOwner().getName()) ? pieceIconP1 : pieceIconP2;
+            int px = node.getX() + 5 + (idx * 10);
+            int py = node.getY() + 5 + (idx * 10);
+            g.drawImage(img, px, py, PIECE_SIZE, PIECE_SIZE, this);
+            idx++;
         }
     }
 
