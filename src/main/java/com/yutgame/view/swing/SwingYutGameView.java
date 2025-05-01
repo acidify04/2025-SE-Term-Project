@@ -15,6 +15,7 @@ public class SwingYutGameView extends JFrame {
     private BoardPanel boardPanel;
     private JButton randomThrowButton;
     private JButton manualThrowButton;
+    private boolean isRandomThrow = false;
 
     public SwingYutGameView(YutGame game) {
         this.game = game;
@@ -42,11 +43,13 @@ public class SwingYutGameView extends JFrame {
 
     private void initButtonListeners() {
         randomThrowButton.addActionListener(e -> {
+            isRandomThrow = true;
             YutThrowResult first = game.throwYutRandom();
             processAllThrows(first);
         });
 
         manualThrowButton.addActionListener(e -> {
+            isRandomThrow = false;
             String[] options = {"빽도", "도", "개", "걸", "윷", "모"};
             int choice = JOptionPane.showOptionDialog(
                     this,
@@ -82,7 +85,34 @@ public class SwingYutGameView extends JFrame {
         while (game.getLastThrowResult() == YUT
         || game.getLastThrowResult() == YutThrowResult.MO
         || game.hasExtraTurnFlag()) {
-            YutThrowResult nextResult = game.throwYutRandom();
+            YutThrowResult nextResult;
+            if (isRandomThrow) {
+                nextResult = game.throwYutRandom();
+            } else {
+                String[] options = {"빽도", "도", "개", "걸", "윷", "모"};
+                int choice = JOptionPane.showOptionDialog(
+                        this,
+                        "결과를 선택하세요",
+                        "지정 윷 던지기",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        options,
+                        options[1]
+                );
+                YutThrowResult sel = switch (choice) {
+                    case 0 -> YutThrowResult.BAK_DO;
+                    case 1 -> YutThrowResult.DO;
+                    case 2 -> GAE;
+                    case 3 -> GEOL;
+                    case 4 -> YUT;
+                    case 5 -> YutThrowResult.MO;
+                    default -> YutThrowResult.DO;
+                };
+                game.throwYutManual(sel);
+                nextResult = sel;
+            }
+
             results.add(nextResult);
         }
         for (YutThrowResult result : results) {
@@ -114,7 +144,7 @@ public class SwingYutGameView extends JFrame {
         if (results.size() > 1) {
             while (!results.isEmpty()) {
                 String[] options = results.stream()
-                        .map(Enum::name) // 또는 .map(e -> e.toString()) - 커스터마이즈 했으면 toString 추천
+                        .map(Enum::name)
                         .toArray(String[]::new);
 
                 int choice = JOptionPane.showOptionDialog(
