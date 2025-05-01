@@ -24,8 +24,9 @@ public class SwingYutGameView extends JFrame {
         this.game = game;
 
         setTitle("Swing Yut Game");
-        setSize(900, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setSize(700, 700);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         JPanel topPanel = new JPanel();
