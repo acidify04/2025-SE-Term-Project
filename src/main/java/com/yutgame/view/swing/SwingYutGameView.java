@@ -7,6 +7,8 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static main.java.com.yutgame.model.YutThrowResult.*;
+
 public class SwingYutGameView extends JFrame {
 
     private YutGame game;
@@ -59,9 +61,9 @@ public class SwingYutGameView extends JFrame {
             YutThrowResult sel = switch (choice) {
                 case 0 -> YutThrowResult.BAK_DO;
                 case 1 -> YutThrowResult.DO;
-                case 2 -> YutThrowResult.GAE;
-                case 3 -> YutThrowResult.GEOL;
-                case 4 -> YutThrowResult.YUT;
+                case 2 -> GAE;
+                case 3 -> GEOL;
+                case 4 -> YUT;
                 case 5 -> YutThrowResult.MO;
                 default -> YutThrowResult.DO;
             };
@@ -77,11 +79,14 @@ public class SwingYutGameView extends JFrame {
         List<YutThrowResult> results = new ArrayList<>();
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
-        while (game.getLastThrowResult() == YutThrowResult.YUT
+        while (game.getLastThrowResult() == YUT
         || game.getLastThrowResult() == YutThrowResult.MO
         || game.hasExtraTurnFlag()) {
             YutThrowResult nextResult = game.throwYutRandom();
             results.add(nextResult);
+        }
+        for (YutThrowResult result : results) {
+            System.out.println("리스트에 저장된 것" + result);
         }
         applyThrowSelections(results);
     }
@@ -91,38 +96,54 @@ public class SwingYutGameView extends JFrame {
      */
     private void applyThrowSelections(List<YutThrowResult> results) {
         Player currentPlayer = game.getCurrentPlayer();
+        //boolean isFirst = (results.get(0) == YutThrowResult.YUT || results.get(0) == YutThrowResult.MO);
         for (YutThrowResult result : results) {
+            System.out.println(results.size());
+            System.out.println("현재 실행하는 것" + result);
             JOptionPane.showMessageDialog(this, "던진 윷 결과: " + result);
-            Piece selected = selectPiece(currentPlayer);
-            if (selected == null) continue;
-
-            int steps = switch (result) {
-                case BAK_DO -> -1;
-                case DO      -> 1;
-                case GAE     -> 2;
-                case GEOL    -> 3;
-                case YUT     -> 4;
-                case MO      -> 5;
-            };
-
-            BoardNode curr = selected.getCurrentNode();
-            if (curr == null) curr = game.getBoard().getStartNode();
-
-            if (steps < 0) {
-                List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
-                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
-                if (dest != null) game.movePiece(selected, dest);
-            } else {
-                List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
-                BoardNode dest;
-                if (isCrossroad(curr) && cans.size() > 1) {
-                    dest = chooseDestination(cans, "갈림길 선택");
-                } else {
-                    dest = cans.isEmpty() ? null : cans.get(0);
-                }
-                if (dest != null) game.movePiece(selected, dest);
+            if (results.size() > 1 && (result == YUT || result == YutThrowResult.MO)) {
+                JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
             }
-            boardPanel.repaint();
+//            for (int i = 1; i < results.size(); i++) {
+//                if (i > 1) {
+//                    JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
+//                }
+//                JOptionPane.showMessageDialog(this, "던진 윷 결과: " + results.get(i));
+//            }
+        }
+        if (results.size() > 1) {
+
+        } else {
+            Piece selected = selectPiece(currentPlayer);
+            if (selected != null) {
+                int steps = switch (results.get(0)) {
+                    case BAK_DO -> -1;
+                    case DO      -> 1;
+                    case GAE     -> 2;
+                    case GEOL    -> 3;
+                    case YUT     -> 4;
+                    case MO      -> 5;
+                };
+
+                BoardNode curr = selected.getCurrentNode();
+                if (curr == null) curr = game.getBoard().getStartNode();
+
+                if (steps < 0) {
+                    List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
+                    BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
+                    if (dest != null) game.movePiece(selected, dest);
+                } else {
+                    List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
+                    BoardNode dest;
+                    if (isCrossroad(curr) && cans.size() > 1) {
+                        dest = chooseDestination(cans, "갈림길 선택");
+                    } else {
+                        dest = cans.isEmpty() ? null : cans.get(0);
+                    }
+                    if (dest != null) game.movePiece(selected, dest);
+                }
+                boardPanel.repaint();
+            }
         }
 
         if (game.isGameOver()) {
