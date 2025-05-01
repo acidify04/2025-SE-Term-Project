@@ -153,14 +153,14 @@ public class SquareBoard implements YutBoard {
             if (!results.contains(node)) {
                 results.add(node);
             }
-            path.remove(path.size()-1);
+            path.removeLast();
             return;
         }
         // 갈림길 (nextNodes) 탐색
         for (BoardNode nxt : node.getNextNodes()) {
             dfsPaths(nxt, steps-1, path, results);
         }
-        path.remove(path.size()-1);
+        path.removeLast();
     }
 
     @Override
