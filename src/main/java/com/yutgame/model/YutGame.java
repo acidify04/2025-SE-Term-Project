@@ -13,7 +13,7 @@ import java.util.Random;
  */
 public class YutGame {
 
-    private Board board;               // 윷놀이판
+    private YutBoard board;               // 윷놀이판
     private List<Player> players;      // 플레이어 목록
     private int currentPlayerIndex;    // 현재 턴의 플레이어
     private boolean isGameOver;        // 게임 종료 여부
@@ -24,7 +24,7 @@ public class YutGame {
 
     private Random random = new Random();
 
-    public YutGame(List<Player> players, Board board) {
+    public YutGame(List<Player> players, YutBoard board) {
         this.players = players;
         this.board = board;
         this.currentPlayerIndex = 0;
@@ -258,7 +258,7 @@ public class YutGame {
         this.extraTurnFlag = false;
     }
 
-    public Board getBoard() {
+    public YutBoard getBoard() {
         return this.board;
     }
 
