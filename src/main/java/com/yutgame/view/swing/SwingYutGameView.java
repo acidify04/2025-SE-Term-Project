@@ -95,28 +95,59 @@ public class SwingYutGameView extends JFrame {
     }
 
     /**
-     * 윷을 던진 뒤, 현재 플레이어가 어떤 말을 이동할지 선택하고
-     * 갈림길이 있으면 방향을 물어본 뒤 movePiece(...)를 실행한다.
+     * 윷 결과가 나오면 말 이동
+     * 1. 이동시킬 말 선택
+     * 2. 갈림길이 있을 경우 갈림길 선택
+     * 3. 말 이동(movePiece)
      */
     private void afterThrow(YutThrowResult result) {
         // 현재 플레이어
         Player currentPlayer = game.getCurrentPlayer();
 
-        // (A) 말 선택
-        Piece selectedPiece = askPieceSelection(currentPlayer);
+        // 이동시킬 말 선택
+        Piece selectedPiece = choosePiece(currentPlayer);
         if (selectedPiece == null) {
             // 말이 없거나 선택 취소
             return;
         }
 
-        // (B) 이동 칸수 추출
-        int steps = getStepsFromResult(result);
+        // 이동 칸수 추출
+        int steps = switch (result) {
+            case BAK_DO -> -1;
+            case DO -> 1;
+            case GAE -> 2;
+            case GEOL -> 3;
+            case YUT -> 4;
+            case MO -> 5;
+        };
 
-        // (C) 갈림길 있는지 확인
+        // 이동시킬 말의 현재 위치
         BoardNode currentNode = selectedPiece.getCurrentNode();
         if (currentNode == null) {
             currentNode = game.getBoard().getStartNode();
         }
+
+        // 백도 처리
+        if (steps < 0) {
+            List<BoardNode> previous = game.getBoard().getPossiblePreviousNodes(currentNode);
+
+            if (previous.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "백도 불가");
+                return;
+            }
+            // 갈림길이 있을 경우
+            BoardNode chosenPreviousNode = chooseDestination(previous, "백도 갈림길 선택");
+            if (chosenPreviousNode != null) {
+                game.movePiece(selectedPiece, chosenPreviousNode);
+            }
+        } else { // 백도 이외
+            List<BoardNode> possibleNodes = game.getBoard().getPossibleNextNodes(currentNode, steps);
+            if (possibleNodes.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "이동할 수 있는 경로가 없습니다.");
+                return;
+            }
+        }
+
         List<BoardNode> possibleDests = game.getBoard().getPossibleNextNodes(currentNode, steps);
         BoardNode chosenNode = chooseForkDestination(possibleDests);
         if (chosenNode == null) {
