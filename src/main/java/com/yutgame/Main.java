@@ -35,10 +35,10 @@ public class Main {
 
         // 말 개수 선택
         Integer pieceCount = null;
-        while (pieceCount == null || pieceCount < 1) {
+        while (pieceCount == null || pieceCount < 2 || pieceCount > 5) {
             String input = JOptionPane.showInputDialog(
                     null,
-                    "각 플레이어의 말 개수를 입력하세요 (1 이상의 정수):",
+                    "각 플레이어의 말 개수를 입력하세요 (2~5):",
                     "게임 설정",
                     JOptionPane.QUESTION_MESSAGE
             );
