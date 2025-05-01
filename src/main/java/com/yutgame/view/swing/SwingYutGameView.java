@@ -7,12 +7,15 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static main.java.com.yutgame.model.YutThrowResult.*;
+
 public class SwingYutGameView extends JFrame {
 
     private YutGame game;
     private BoardPanel boardPanel;
     private JButton randomThrowButton;
     private JButton manualThrowButton;
+    private boolean isRandomThrow = false;
 
     public SwingYutGameView() {
         // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
@@ -91,37 +94,15 @@ public class SwingYutGameView extends JFrame {
 
     private void initButtonListeners() {
         randomThrowButton.addActionListener(e -> {
-            YutThrowResult first = game.throwYutRandom();
-            processAllThrows(first);
+            isRandomThrow = true;
+            YutThrowResult selected = game.throwYutRandom();
+            processAllThrows(selected);
         });
 
         manualThrowButton.addActionListener(e -> {
-            String[] options = {"빽도", "도", "개", "걸", "윷", "모"};
-            int choice = JOptionPane.showOptionDialog(
-                    this,
-                    "결과를 선택하세요",
-                    "지정 윷 던지기",
-                    JOptionPane.DEFAULT_OPTION,
-                    JOptionPane.PLAIN_MESSAGE,
-                    null,
-                    options,
-                    options[1]
-            );
-            if (choice == JOptionPane.CLOSED_OPTION) {
-                // 닫기 버튼 누르면 창만 닫고 취소 처리
-                return;
-            }
-            YutThrowResult sel = switch (choice) {
-                case 0 -> YutThrowResult.BAK_DO;
-                case 1 -> YutThrowResult.DO;
-                case 2 -> YutThrowResult.GAE;
-                case 3 -> YutThrowResult.GEOL;
-                case 4 -> YutThrowResult.YUT;
-                case 5 -> YutThrowResult.MO;
-                default -> YutThrowResult.DO;
-            };
-            game.throwYutManual(sel);
-            processAllThrows(sel);
+            isRandomThrow = false;
+            YutThrowResult selected = getSetYutResult();
+            processAllThrows(selected);
         });
     }
 
@@ -132,14 +113,43 @@ public class SwingYutGameView extends JFrame {
         List<YutThrowResult> results = new ArrayList<>();
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
-        while (game.getLastThrowResult() == YutThrowResult.YUT
-                || game.getLastThrowResult() == YutThrowResult.MO
-                || game.hasExtraTurnFlag()) {
-            YutThrowResult nextResult = game.throwYutRandom();
+        while (game.getLastThrowResult() == YUT
+        || game.getLastThrowResult() == YutThrowResult.MO) {
+            YutThrowResult nextResult;
+            if (isRandomThrow) {
+                nextResult = game.throwYutRandom();
+            } else {
+                nextResult = getSetYutResult();
+            }
             results.add(nextResult);
         }
         applyThrowSelections(results);
     }
+
+    private YutThrowResult getSetYutResult() {
+        String[] options = {"빽도", "도", "개", "걸", "윷", "모"};
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "결과를 선택하세요",
+                "지정 윷 던지기",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                options,
+                options[1]
+        );
+        YutThrowResult sel = switch (choice) {
+            case 0 -> YutThrowResult.BAK_DO;
+            case 1 -> YutThrowResult.DO;
+            case 2 -> GAE;
+            case 3 -> GEOL;
+            case 4 -> YUT;
+            case 5 -> YutThrowResult.MO;
+            default -> YutThrowResult.DO;
+        };
+        game.throwYutManual(sel);
+        return sel;
+    } // 지정 윷 던지기
 
     /**
      * 누적된 결과들에 대해 차례로 말/경로 선택 후 이동 처리
@@ -161,10 +171,44 @@ public class SwingYutGameView extends JFrame {
 
         for (YutThrowResult result : results) {
             JOptionPane.showMessageDialog(this, "던진 윷 결과: " + result);
-            Piece selected = selectPiece(currentPlayer);
-            if (selected == null) continue;
+            if (results.size() > 1 && (result == YUT || result == YutThrowResult.MO)) {
+                JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
+            }
+        }
+        if (results.size() > 1) {
+            while (!results.isEmpty()) {
+                String[] options = results.stream()
+                        .map(Enum::name)
+                        .toArray(String[]::new);
 
-            int steps = switch (result) {
+                int choice = JOptionPane.showOptionDialog(
+                        this,
+                        "몇 칸 이동하시겠습니까?",
+                        "이동 선택",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        options,
+                        options[0]
+                );
+                YutThrowResult chosenResult = results.remove(choice);
+                moveNode(currentPlayer, chosenResult);
+            }
+
+
+        } else moveNode(currentPlayer, results.get(0));
+
+        if (game.isGameOver()) {
+            JOptionPane.showMessageDialog(this, "승리자: " + game.getWinner().getName());
+        } else {
+            game.nextTurn();
+        }
+    }
+
+    private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
+        Piece selected = selectPiece(currentPlayer);
+        if (selected != null) {
+            int steps = switch (chosenResult) {
                 case BAK_DO -> -1;
                 case DO      -> 1;
                 case GAE     -> 2;
@@ -191,12 +235,6 @@ public class SwingYutGameView extends JFrame {
                 if (dest != null) game.movePiece(selected, dest);
             }
             boardPanel.repaint();
-        }
-
-        if (game.isGameOver()) {
-            JOptionPane.showMessageDialog(this, "승리자: " + game.getWinner().getName());
-        } else {
-            game.nextTurn();
         }
     }
 
