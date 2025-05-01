@@ -100,6 +100,11 @@ public class YutGame {
         return winner;
     }
 
+    /** 외부에서 extraTurnFlag 확인용 */
+    public boolean hasExtraTurnFlag() {
+        return extraTurnFlag;
+    }
+
     /**
      * 말 이동 로직:
      * - 사용자가 선택한 최종 목적지(targetNode)로 말을 이동시킨다.
