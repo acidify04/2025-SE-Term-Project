@@ -112,6 +112,54 @@ public class SwingYutGameView extends JFrame {
 //            }
         }
         if (results.size() > 1) {
+            while (!results.isEmpty()) {
+                String[] options = results.stream()
+                        .map(Enum::name) // 또는 .map(e -> e.toString()) - 커스터마이즈 했으면 toString 추천
+                        .toArray(String[]::new);
+
+                int choice = JOptionPane.showOptionDialog(
+                        this,
+                        "몇 칸 이동하시겠습니까?",
+                        "이동 선택",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        options,
+                        options[0]
+                );
+                YutThrowResult chosenResult = results.remove(choice);
+                Piece selected = selectPiece(currentPlayer);
+                if (selected != null) {
+                    int steps = switch (chosenResult) {
+                        case BAK_DO -> -1;
+                        case DO      -> 1;
+                        case GAE     -> 2;
+                        case GEOL    -> 3;
+                        case YUT     -> 4;
+                        case MO      -> 5;
+                    };
+
+                    BoardNode curr = selected.getCurrentNode();
+                    if (curr == null) curr = game.getBoard().getStartNode();
+
+                    if (steps < 0) {
+                        List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
+                        BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
+                        if (dest != null) game.movePiece(selected, dest);
+                    } else {
+                        List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
+                        BoardNode dest;
+                        if (isCrossroad(curr) && cans.size() > 1) {
+                            dest = chooseDestination(cans, "갈림길 선택");
+                        } else {
+                            dest = cans.isEmpty() ? null : cans.get(0);
+                        }
+                        if (dest != null) game.movePiece(selected, dest);
+                    }
+                    boardPanel.repaint();
+                }
+            }
+
 
         } else {
             Piece selected = selectPiece(currentPlayer);
