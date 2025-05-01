@@ -123,6 +123,10 @@ public class YutGame {
         // 실제 이동 (사용자가 선택한 노드로 이동)
         piece.moveTo(targetNode); // 변경: targetNode 사용
 
+        // 그룹된 말도 함께 이동
+        List<Piece> movedGroup = new ArrayList<>();
+        moveGroupWith(piece, targetNode, movedGroup);
+
         // 잡기 (targetNode 기준으로)
         boolean didCapture = captureIfNeeded(targetNode, piece.getOwner());
 
@@ -168,9 +172,13 @@ public class YutGame {
         if (toCapture.isEmpty()) {
             return false;
         }
-        BoardNode start = board.getStartNode();
+
         for (Piece captured : toCapture) {
-            captured.moveTo(start);
+            // 잡힌 말은 보드에서 제거
+            captured.getCurrentNode().removePiece(captured);
+            captured.ungroup();                        // 그룹 해제 (업기 상태 제거)
+            // 출발 전 상태로 되돌림
+            captured.moveTo(null);                     // moveTo(null)은 아래처럼 만들어야 함
         }
         return true;
     }
@@ -243,8 +251,30 @@ public class YutGame {
         this.extraTurnFlag = false;
     }
 
+    /**
+     * 외부에서 플레이어 목록을 가져갈 때 사용
+     */
+    public List<Player> getPlayers() {
+        return players;
+    }
+
+    /**
+     * 외부에서 보드 객체를 가져갈 때 사용
+     */
     public YutBoard getBoard() {
         return this.board;
     }
+
+
+    // 말 그룹 이동
+    private void moveGroupWith(Piece piece, BoardNode targetNode, List<Piece> moved) {
+        if (moved.contains(piece)) return; // 중복 이동 방지
+        piece.moveTo(targetNode);
+        moved.add(piece);
+        for (Piece child : piece.getGroupedPieces()) {
+            moveGroupWith(child, targetNode, moved);
+        }
+    }
+
 
 }

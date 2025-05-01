@@ -4,13 +4,12 @@ import java.util.List;
 
 /**
  * 플레이어(또는 팀)를 나타내는 클래스.
- * 소유 말 목록을 관리하고, 승리 여부 등 상태를 가질 수 있음.
  */
 public class Player {
 
     private String name;
     private List<Piece> pieces;
-    private boolean isWinner;  // 최종 승리자 여부
+    private boolean isWinner;
 
     public Player(String name, List<Piece> pieces) {
         this.name = name;
@@ -35,18 +34,18 @@ public class Player {
     }
 
     /**
-     * 모든 말이 골인(isFinished=true)했는지 확인.
+     * 모든 말이 골인했는지 체크.
      */
     public boolean allPiecesFinished() {
         if (pieces.isEmpty()) return false;
-
-        for (Piece piece : pieces) {
-            if (!piece.isFinished()) {
+        for (Piece p : pieces) {
+            if (!p.isFinished()) {
                 return false;
             }
         }
         return true;
     }
+
     /**
      * 완주한 말의 개수를 반환
      */
