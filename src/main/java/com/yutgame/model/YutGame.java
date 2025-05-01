@@ -180,9 +180,13 @@ public class YutGame {
         if (toCapture.isEmpty()) {
             return false;
         }
-        BoardNode start = board.getStartNode();
+
         for (Piece captured : toCapture) {
-            captured.moveTo(start);
+            // 잡힌 말은 보드에서 제거
+            captured.getCurrentNode().removePiece(captured);
+            captured.ungroup();                        // 그룹 해제 (업기 상태 제거)
+            // 출발 전 상태로 되돌림
+            captured.moveTo(null);                     // moveTo(null)은 아래처럼 만들어야 함
         }
         return true;
     }

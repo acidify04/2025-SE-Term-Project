@@ -50,13 +50,18 @@ public class Piece {
         if (currentNode != null) {
             currentNode.removePiece(this);
         }
-        // 새 노드에 추가
-        nextNode.addPiece(this);
-        // 현재 노드 갱신
+
+        // 새 노드에 추가 (nextNode가 null일 경우 처리 생략)
+        if (nextNode != null) {
+            nextNode.addPiece(this);
+        }
+
+        // 현재 노드 갱신 (null일 수도 있음)
         this.currentNode = nextNode;
 
         // 그룹 이동 로직(다른 말과 함께 이동 등)은 필요시 구현
     }
+
 
     /**
      * 아군 말과 업기(그룹화) 처리
