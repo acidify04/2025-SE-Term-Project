@@ -262,6 +262,16 @@ public class YutGame {
         this.extraTurnFlag = false;
     }
 
+    /**
+     * 외부에서 플레이어 목록을 가져갈 때 사용
+     */
+    public List<Player> getPlayers() {
+        return players;
+    }
+
+    /**
+     * 외부에서 보드 객체를 가져갈 때 사용
+     */
     public YutBoard getBoard() {
         return this.board;
     }
