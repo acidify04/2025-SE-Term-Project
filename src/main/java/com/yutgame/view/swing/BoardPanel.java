@@ -4,8 +4,6 @@ import main.java.com.yutgame.model.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
@@ -19,14 +17,18 @@ public class BoardPanel extends JPanel {
     private static final int NODE_SIZE = 40;
     private static final int PIECE_SIZE = 30;
 
-    private YutGame game;
-    private Image pieceIconP1;
-    private Image pieceIconP2;
+    private final YutGame game;
+    private final Image pieceIconP1;
+    private final Image pieceIconP2;
+    private final Image pieceIconP3;
+    private final Image pieceIconP4;
 
     public BoardPanel(YutGame game) {
         this.game = game;
-        pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p1.png");
-        pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p2.png");
+        pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece1.png");
+        pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece2.png");
+        pieceIconP3 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece3.png");
+        pieceIconP4 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece4.png");
     }
 
     @Override
@@ -87,7 +89,17 @@ public class BoardPanel extends JPanel {
         for (Piece p : node.getOccupantPieces()) {
             // 캡처되거나 완주된 말은 그리지 않음
             if (p.isFinished() || p.getCurrentNode() == null) continue;
-            Image img = "P1".equals(p.getOwner().getName()) ? pieceIconP1 : pieceIconP2;
+
+            // 플레이어 번호에 따라 다른 이미지 사용 (switch문 적용)
+            String playerName = p.getOwner().getName();
+            Image img = switch (playerName) {
+                case "P1" -> pieceIconP1;
+                case "P2" -> pieceIconP2;
+                case "P3" -> pieceIconP3;
+                case "P4" -> pieceIconP4;
+                default -> pieceIconP1; // 기본값
+            };
+
             int px = node.getX() + 5 + (idx * 10);
             int py = node.getY() + 5 + (idx * 10);
             g.drawImage(img, px, py, PIECE_SIZE, PIECE_SIZE, this);
