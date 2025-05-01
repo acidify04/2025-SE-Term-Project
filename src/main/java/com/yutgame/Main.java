@@ -14,7 +14,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         // 1) 모델(보드, 플레이어, 말) 준비
-        Board board = Board.createStandardBoard();   // 좌표 부여된 표준 보드 생성
+        SquareBoard squareBoard = SquareBoard.createStandardBoard();   // 좌표 부여된 표준 보드 생성
 
         Player p1 = new Player("P1", new ArrayList<>());
         Player p2 = new Player("P2", new ArrayList<>());
@@ -30,7 +30,7 @@ public class Main {
         p2.getPieces().add(p2a);
         p2.getPieces().add(p2b);
 
-        YutGame game = new YutGame(List.of(p1, p2), board);
+        YutGame game = new YutGame(List.of(p1, p2), squareBoard);
 
         // 2) Swing 실행 스레드 시작
         SwingUtilities.invokeLater(() -> {
