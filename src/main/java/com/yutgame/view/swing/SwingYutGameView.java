@@ -1,7 +1,6 @@
 package main.java.com.yutgame.view.swing;
 
 import main.java.com.yutgame.model.*;
-import main.java.com.yutgame.view.swing.BoardPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,24 +9,23 @@ import java.awt.event.ActionListener;
 import java.util.List;
 
 /**
- * Swing 기반 윷놀이 게임 메인 창.
- * - 상단에 "랜덤 윷 던지기", "지정 윷 던지기" 버튼
- * - 중앙에 BoardPanel(보드와 말 표시)
- * - 윷 던진 결과 후, 말 이동 로직 및 갈림길 선택 처리
+ * Swing 윷놀이 메인 프레임
+ * - 상단에 "랜덤 윷 던지기 / 지정 윷 던지기" 버튼
+ * - 중앙에 BoardPanel
  */
 public class SwingYutGameView extends JFrame {
 
-    private YutGame game;            // 윷놀이 로직 (Model)
-    private BoardPanel boardPanel;   // 윷판을 그리는 패널
+    private YutGame game;
+    private BoardPanel boardPanel;
 
-    private JButton randomThrowButton;
-    private JButton manualThrowButton;
+    private JButton randomThrowButton; // 랜덤 윷 던지기
+    private JButton manualThrowButton; // 지정 윷 던지기
 
     public SwingYutGameView(YutGame game) {
         this.game = game;
 
         setTitle("Swing Yut Game");
-        setSize(900, 600);
+        setSize(700, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -39,11 +37,10 @@ public class SwingYutGameView extends JFrame {
         topPanel.add(manualThrowButton);
         add(topPanel, BorderLayout.NORTH);
 
-        // 보드 패널
+        // board 영역
         boardPanel = new BoardPanel(game);
         add(boardPanel, BorderLayout.CENTER);
 
-        // 버튼 이벤트 초기화
         initButtonListeners();
 
         // 게임 시작
@@ -51,55 +48,49 @@ public class SwingYutGameView extends JFrame {
     }
 
     private void initButtonListeners() {
-        // (1) 랜덤 윷 던지기
-        randomThrowButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                YutThrowResult result = game.throwYutRandom();
-                JOptionPane.showMessageDialog(
-                        SwingYutGameView.this,
-                        "던진 윷 결과: " + result,
-                        "윷 결과",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-                processAfterThrow(result);
-            }
+        // 랜덤 윷 던지기
+        randomThrowButton.addActionListener(e -> {
+            YutThrowResult result = game.throwYutRandom();
+            JOptionPane.showMessageDialog(
+                    SwingYutGameView.this,
+                    "던진 윷 결과: " + result,
+                    "윷 결과",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            afterThrow(result);
         });
 
-        // (2) 지정 윷 던지기
-        manualThrowButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String[] options = {"빽도(0)", "도(1)", "개(2)", "걸(3)", "윷(4)", "모(5)"};
-                int choice = JOptionPane.showOptionDialog(
-                        SwingYutGameView.this,
-                        "결과를 선택하세요",
-                        "지정 윷 던지기",
-                        JOptionPane.DEFAULT_OPTION,
-                        JOptionPane.PLAIN_MESSAGE,
-                        null,
-                        options,
-                        options[1]
-                );
+        // 지정 윷 던지기
+        manualThrowButton.addActionListener(e -> {
+            String[] options = {"백도", "도", "개", "걸", "윷", "모"};
+            int choice = JOptionPane.showOptionDialog(
+                    SwingYutGameView.this,
+                    "결과를 선택하세요",
+                    "지정 윷 던지기",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    options,
+                    options[1]
+            );
 
-                YutThrowResult selected = switch(choice) {
-                    case 0 -> YutThrowResult.BAK_DO;
-                    case 1 -> YutThrowResult.DO;
-                    case 2 -> YutThrowResult.GAE;
-                    case 3 -> YutThrowResult.GEOL;
-                    case 4 -> YutThrowResult.YUT;
-                    case 5 -> YutThrowResult.MO;
-                    default -> YutThrowResult.DO;
-                };
-                game.throwYutManual(selected);
-                JOptionPane.showMessageDialog(
-                        SwingYutGameView.this,
-                        "던진 윷 결과: " + selected,
-                        "윷 결과",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-                processAfterThrow(selected);
-            }
+            YutThrowResult selected = switch(choice) {
+                case 0 -> YutThrowResult.BAK_DO;
+                case 1 -> YutThrowResult.DO;
+                case 2 -> YutThrowResult.GAE;
+                case 3 -> YutThrowResult.GEOL;
+                case 4 -> YutThrowResult.YUT;
+                case 5 -> YutThrowResult.MO;
+                default -> YutThrowResult.DO;
+            };
+            game.throwYutManual(selected);
+            JOptionPane.showMessageDialog(
+                    SwingYutGameView.this,
+                    "던진 윷 결과: " + selected,
+                    "윷 결과",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            afterThrow(selected);
         });
     }
 
@@ -107,7 +98,7 @@ public class SwingYutGameView extends JFrame {
      * 윷을 던진 뒤, 현재 플레이어가 어떤 말을 이동할지 선택하고
      * 갈림길이 있으면 방향을 물어본 뒤 movePiece(...)를 실행한다.
      */
-    private void processAfterThrow(YutThrowResult result) {
+    private void afterThrow(YutThrowResult result) {
         // 현재 플레이어
         Player currentPlayer = game.getCurrentPlayer();
 
