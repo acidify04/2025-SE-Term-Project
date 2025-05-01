@@ -56,6 +56,10 @@ public class SwingYutGameView extends JFrame {
                     options,
                     options[1]
             );
+            if (choice == JOptionPane.CLOSED_OPTION) {
+                // 닫기 버튼 누르면 창만 닫고 취소 처리
+                return;
+            }
             YutThrowResult sel = switch (choice) {
                 case 0 -> YutThrowResult.BAK_DO;
                 case 1 -> YutThrowResult.DO;
@@ -78,8 +82,8 @@ public class SwingYutGameView extends JFrame {
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
         while (game.getLastThrowResult() == YutThrowResult.YUT
-        || game.getLastThrowResult() == YutThrowResult.MO
-        || game.hasExtraTurnFlag()) {
+                || game.getLastThrowResult() == YutThrowResult.MO
+                || game.hasExtraTurnFlag()) {
             YutThrowResult nextResult = game.throwYutRandom();
             results.add(nextResult);
         }
