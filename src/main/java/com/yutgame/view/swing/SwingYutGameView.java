@@ -182,10 +182,13 @@ public class SwingYutGameView extends JFrame {
     /**
      * 현재 플레이어의 말 목록 중 하나를 선택시키는 Dialog.
      */
-    private Piece askPieceSelection(Player player) {
+    private Piece choosePiece(Player player) {
         List<Piece> pieces = player.getPieces();
         if (pieces.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "이 플레이어는 말이 없습니다.", "알림", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this, "이 플레이어는 말이 없습니다.",
+                    "선택 불가", JOptionPane.WARNING_MESSAGE
+            );
             return null;
         }
 
@@ -200,7 +203,7 @@ public class SwingYutGameView extends JFrame {
 
         int choice = JOptionPane.showOptionDialog(
                 this,
-                "이동할 말을 선택하세요",
+                "이동할 말을 선택하세요 (" + player.getName() + ")",
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
@@ -216,22 +219,23 @@ public class SwingYutGameView extends JFrame {
     }
 
     /**
-     * 갈림길 후보가 여러 개일 때, 사용자에게 경로 선택을 묻는다.
+     * 갈림길 후보가 여러 개일 때, 사용자가 선택하게 함
      */
-    private BoardNode chooseForkDestination(List<BoardNode> candidates) {
+    private BoardNode chooseDestination(List<BoardNode> candidates, String title) {
+        if (candidates.size() == 1) {
+            // 갈림길이 아닌 경우
+            return candidates.get(0);
+        }
         if (candidates.isEmpty()) {
+            // 이동 경로가 없는 경우
             JOptionPane.showMessageDialog(this, "이동할 경로가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
             return null;
         }
-        if (candidates.size() == 1) {
-            // 갈림길 아님
-            return candidates.get(0);
-        }
 
-        // 여러 개 경로 -> 사용자에게 선택 Dialog
+        // 경로가 여러 개인 경우
         String[] options = new String[candidates.size()];
         for (int i = 0; i < candidates.size(); i++) {
-            options[i] = candidates.get(i).getId(); // 혹은 "노드명(x,y)"
+            options[i] = candidates.get(i).getId();
         }
         int choice = JOptionPane.showOptionDialog(
                 this,
@@ -248,19 +252,5 @@ public class SwingYutGameView extends JFrame {
             return null;
         }
         return candidates.get(choice);
-    }
-
-    /**
-     * YutThrowResult -> 이동 칸 수로 변환.
-     */
-    private int getStepsFromResult(YutThrowResult result) {
-        return switch (result) {
-            case BAK_DO -> -1;
-            case DO -> 1;
-            case GAE -> 2;
-            case GEOL -> 3;
-            case YUT -> 4;
-            case MO -> 5;
-        };
     }
 }
