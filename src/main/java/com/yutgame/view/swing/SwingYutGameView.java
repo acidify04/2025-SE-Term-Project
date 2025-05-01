@@ -91,6 +91,19 @@ public class SwingYutGameView extends JFrame {
      */
     private void applyThrowSelections(List<YutThrowResult> results) {
         Player currentPlayer = game.getCurrentPlayer();
+
+        // 첫 번째 결과가 빽도이고, 모든 말이 아직 출발하지 않은 경우 → 턴 넘기기
+        if (results.size() == 1 && results.get(0) == YutThrowResult.BAK_DO) {
+            boolean allUnstarted = currentPlayer.getPieces().stream()
+                    .allMatch(p -> p.getCurrentNode() == null);
+            if (allUnstarted) {
+                JOptionPane.showMessageDialog(this, "출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다.");
+                game.nextTurn();
+                boardPanel.repaint();
+                return;
+            }
+        }
+
         for (YutThrowResult result : results) {
             JOptionPane.showMessageDialog(this, "던진 윷 결과: " + result);
             Piece selected = selectPiece(currentPlayer);

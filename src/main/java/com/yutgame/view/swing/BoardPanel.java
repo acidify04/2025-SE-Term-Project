@@ -25,8 +25,8 @@ public class BoardPanel extends JPanel {
 
     public BoardPanel(YutGame game) {
         this.game = game;
-        pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p1.png");
-        pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p2.png");
+        pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece1.png");
+        pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece2.png");
     }
 
     @Override
