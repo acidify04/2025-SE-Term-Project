@@ -4,67 +4,50 @@ import main.java.com.yutgame.model.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Swing 윷놀이 메인 프레임
- * - 상단에 "랜덤 윷 던지기 / 지정 윷 던지기" 버튼
- * - 중앙에 BoardPanel
- */
 public class SwingYutGameView extends JFrame {
 
     private YutGame game;
     private BoardPanel boardPanel;
-
-    private JButton randomThrowButton; // 랜덤 윷 던지기
-    private JButton manualThrowButton; // 지정 윷 던지기
+    private JButton randomThrowButton;
+    private JButton manualThrowButton;
 
     public SwingYutGameView(YutGame game) {
         this.game = game;
 
         setTitle("Swing Yut Game");
-        setSize(700, 700);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(900, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // 상단 버튼 영역
         JPanel topPanel = new JPanel();
         randomThrowButton = new JButton("랜덤 윷 던지기");
         manualThrowButton = new JButton("지정 윷 던지기");
         topPanel.add(randomThrowButton);
         topPanel.add(manualThrowButton);
+
         add(topPanel, BorderLayout.NORTH);
 
-        // board 영역
         boardPanel = new BoardPanel(game);
         add(boardPanel, BorderLayout.CENTER);
 
         initButtonListeners();
 
-        // 게임 시작
         game.startGame();
     }
 
     private void initButtonListeners() {
-        // 랜덤 윷 던지기
         randomThrowButton.addActionListener(e -> {
-            YutThrowResult result = game.throwYutRandom();
-            JOptionPane.showMessageDialog(
-                    SwingYutGameView.this,
-                    "던진 윷 결과: " + result,
-                    "윷 결과",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            afterThrow(result);
+            YutThrowResult first = game.throwYutRandom();
+            processAllThrows(first);
         });
 
-        // 지정 윷 던지기
         manualThrowButton.addActionListener(e -> {
-            String[] options = {"백도", "도", "개", "걸", "윷", "모"};
+            String[] options = {"빽도", "도", "개", "걸", "윷", "모"};
             int choice = JOptionPane.showOptionDialog(
-                    SwingYutGameView.this,
+                    this,
                     "결과를 선택하세요",
                     "지정 윷 던지기",
                     JOptionPane.DEFAULT_OPTION,
@@ -73,8 +56,7 @@ public class SwingYutGameView extends JFrame {
                     options,
                     options[1]
             );
-
-            YutThrowResult selected = switch(choice) {
+            YutThrowResult sel = switch (choice) {
                 case 0 -> YutThrowResult.BAK_DO;
                 case 1 -> YutThrowResult.DO;
                 case 2 -> YutThrowResult.GAE;
@@ -83,174 +65,114 @@ public class SwingYutGameView extends JFrame {
                 case 5 -> YutThrowResult.MO;
                 default -> YutThrowResult.DO;
             };
-            game.throwYutManual(selected);
-            JOptionPane.showMessageDialog(
-                    SwingYutGameView.this,
-                    "던진 윷 결과: " + selected,
-                    "윷 결과",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            afterThrow(selected);
+            game.throwYutManual(sel);
+            processAllThrows(sel);
         });
     }
 
     /**
-     * 윷 결과가 나오면 말 이동
-     * 1. 이동시킬 말 선택
-     * 2. 갈림길이 있을 경우 갈림길 선택
-     * 3. 말 이동(movePiece)
+     * 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환
      */
-    private void afterThrow(YutThrowResult result) {
-        // 현재 플레이어
-        Player currentPlayer = game.getCurrentPlayer();
-
-        // 이동시킬 말 선택
-        Piece selectedPiece = choosePiece(currentPlayer);
-        if (selectedPiece == null) {
-            // 말이 없거나 선택 취소
-            return;
+    private void processAllThrows(YutThrowResult firstResult) {
+        List<YutThrowResult> results = new ArrayList<>();
+        results.add(firstResult);
+        YutThrowResult last = firstResult;
+        // 오직 윷(YUT) 또는 모(MO)가 나올 때만 재투척
+        while (last == YutThrowResult.YUT || last == YutThrowResult.MO) {
+            last = game.throwYutRandom();
+            results.add(last);
         }
-
-        // 이동 칸수 추출
-        int steps = switch (result) {
-            case BAK_DO -> -1;
-            case DO -> 1;
-            case GAE -> 2;
-            case GEOL -> 3;
-            case YUT -> 4;
-            case MO -> 5;
-        };
-
-        // 이동시킬 말의 현재 위치
-        BoardNode currentNode = selectedPiece.getCurrentNode();
-        if (currentNode == null) {
-            currentNode = game.getBoard().getStartNode();
-        }
-
-        // 백도 처리
-        if (steps < 0) {
-            List<BoardNode> previous = game.getBoard().getPossiblePreviousNodes(currentNode);
-
-            if (previous.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "백도 불가");
-                return;
-            }
-            // 갈림길이 있을 경우
-            BoardNode chosenPreviousNode = chooseDestination(previous, "백도 갈림길 선택");
-            if (chosenPreviousNode != null) {
-                game.movePiece(selectedPiece, chosenPreviousNode);
-            }
-        } else { // 백도 이외
-            List<BoardNode> possibleNodes = game.getBoard().getPossibleNextNodes(currentNode, steps);
-            if (possibleNodes.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "이동할 수 있는 경로가 없습니다.");
-                return;
-            }
-            BoardNode chosenNextNode = chooseDestination(possibleNodes, "갈림길 선택");
-            if (chosenNextNode != null) {
-                game.movePiece(selectedPiece, chosenNextNode);
-            }
-        }
-
-        // 승리 여부 확인
-        if (game.isGameOver()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "승리자: " + game.getWinner().getName(),
-                    "게임 종료",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-            // 재시작 or 종료
-            int retry = JOptionPane.showConfirmDialog(
-                    this,
-                    "다시 시작하시겠습니까?",
-                    "재시작",
-                    JOptionPane.YES_NO_OPTION
-            );
-            if (retry == JOptionPane.YES_OPTION) {
-                game.resetGame();
-            } else {
-                System.exit(0);
-            }
-        } else {
-            // 턴 종료
-            game.nextTurn();
-        }
-        boardPanel.repaint();
+        applyThrowSelections(results);
     }
 
     /**
-     * 현재 플레이어의 말 목록 중 하나를 선택시키는 Dialog.
+     * 누적된 결과들에 대해 차례로 말/경로 선택 후 이동 처리
      */
-    private Piece choosePiece(Player player) {
-        List<Piece> pieces = player.getPieces();
-        if (pieces.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this, "이 플레이어는 말이 없습니다.",
-                    "선택 불가", JOptionPane.WARNING_MESSAGE
-            );
+    private void applyThrowSelections(List<YutThrowResult> results) {
+        Player currentPlayer = game.getCurrentPlayer();
+        for (YutThrowResult result : results) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: " + result);
+            Piece selected = selectPiece(currentPlayer);
+            if (selected == null) continue;
+
+            int steps = switch (result) {
+                case BAK_DO -> -1;
+                case DO      -> 1;
+                case GAE     -> 2;
+                case GEOL    -> 3;
+                case YUT     -> 4;
+                case MO      -> 5;
+            };
+
+            BoardNode curr = selected.getCurrentNode();
+            if (curr == null) curr = game.getBoard().getStartNode();
+
+            if (steps < 0) {
+                List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
+                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
+                if (dest != null) game.movePiece(selected, dest);
+            } else {
+                List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
+                BoardNode dest;
+                if (isCrossroad(curr) && cans.size() > 1) {
+                    dest = chooseDestination(cans, "갈림길 선택");
+                } else {
+                    dest = cans.isEmpty() ? null : cans.get(0);
+                }
+                if (dest != null) game.movePiece(selected, dest);
+            }
+            boardPanel.repaint();
+        }
+
+        if (game.isGameOver()) {
+            JOptionPane.showMessageDialog(this, "승리자: " + game.getWinner().getName());
+        } else {
+            game.nextTurn();
+        }
+    }
+
+    private boolean isCrossroad(BoardNode node) {
+        String id = node.getId();
+        return "CORNER_NE".equals(id) || "CORNER_NW".equals(id) || "CENTER_NODE".equals(id);
+    }
+
+    private Piece selectPiece(Player player) {
+        List<Piece> plist = player.getPieces();
+        if (plist.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "이 플레이어는 말이 없습니다.", "선택 불가", JOptionPane.WARNING_MESSAGE);
             return null;
         }
-
-        // 말의 위치 정보 표시
-        String[] pieceDescs = new String[pieces.size()];
-        for (int i = 0; i < pieces.size(); i++) {
-            Piece p = pieces.get(i);
-            BoardNode node = p.getCurrentNode();
-            String loc = (node == null) ? "미출발" : node.getId();
-            pieceDescs[i] = "말 " + i + " (위치: " + loc + ")";
+        String[] descs = new String[plist.size()];
+        for (int i = 0; i < plist.size(); i++) {
+            BoardNode cn = plist.get(i).getCurrentNode();
+            descs[i] = "말" + i + "(" + (cn == null ? "미출발" : cn.getId()) + ")";
         }
-
-        int choice = JOptionPane.showOptionDialog(
+        int ch = JOptionPane.showOptionDialog(
                 this,
                 "이동할 말을 선택하세요 (" + player.getName() + ")",
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
                 null,
-                pieceDescs,
-                pieceDescs[0]
+                descs,
+                descs[0]
         );
-
-        if (choice < 0 || choice >= pieces.size()) {
-            return null; // 취소
-        }
-        return pieces.get(choice);
+        return (ch < 0 || ch >= plist.size()) ? null : plist.get(ch);
     }
 
-    /**
-     * 갈림길 후보가 여러 개일 때, 사용자가 선택하게 함
-     */
-    private BoardNode chooseDestination(List<BoardNode> candidates, String title) {
-        if (candidates.size() == 1) {
-            // 갈림길이 아닌 경우
-            return candidates.get(0);
-        }
-        if (candidates.isEmpty()) {
-            // 이동 경로가 없는 경우
-            JOptionPane.showMessageDialog(this, "이동할 경로가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        // 경로가 여러 개인 경우
-        String[] options = new String[candidates.size()];
-        for (int i = 0; i < candidates.size(); i++) {
-            options[i] = candidates.get(i).getId();
-        }
-        int choice = JOptionPane.showOptionDialog(
+    private BoardNode chooseDestination(List<BoardNode> cands, String title) {
+        if (cands.size() == 1) return cands.get(0);
+        String[] opts = cands.stream().map(BoardNode::getId).toArray(String[]::new);
+        int ch = JOptionPane.showOptionDialog(
                 this,
-                "갈림길입니다. 이동할 경로를 고르세요.",
-                "갈림길 선택",
+                "이동할 노드를 선택하세요",
+                title,
                 JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
+                JOptionPane.PLAIN_MESSAGE,
                 null,
-                options,
-                options[0]
+                opts,
+                opts[0]
         );
-
-        if (choice < 0 || choice >= candidates.size()) {
-            return null;
-        }
-        return candidates.get(choice);
+        return (ch < 0 || ch >= cands.size()) ? null : cands.get(ch);
     }
 }
