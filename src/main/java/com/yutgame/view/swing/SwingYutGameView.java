@@ -44,14 +44,25 @@ public class SwingYutGameView extends JFrame {
     private void initButtonListeners() {
         randomThrowButton.addActionListener(e -> {
             isRandomThrow = true;
-            YutThrowResult selected = game.throwYutRandom();
+            YutThrowResult selected;
+            selected = game.throwYutRandom();
             processAllThrows(selected);
+
+            if (game.hasExtraTurnFlag()) {
+                selected = game.throwYutRandom();
+                processAllThrows(selected);
+            }
         });
 
         manualThrowButton.addActionListener(e -> {
             isRandomThrow = false;
             YutThrowResult selected = getSetYutResult();
             processAllThrows(selected);
+
+            if (game.hasExtraTurnFlag()) {
+                selected = game.throwYutRandom();
+                processAllThrows(selected);
+            }
         });
     }
 
@@ -70,7 +81,6 @@ public class SwingYutGameView extends JFrame {
             } else {
                 nextResult = getSetYutResult();
             }
-
             results.add(nextResult);
         }
         applyThrowSelections(results);
