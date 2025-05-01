@@ -1,10 +1,6 @@
 package main.java.com.yutgame.view.swing;
 
-import main.java.com.yutgame.model.Board;
-import main.java.com.yutgame.model.BoardNode;
-import main.java.com.yutgame.model.Piece;
-import main.java.com.yutgame.model.Player;
-import main.java.com.yutgame.model.YutGame;
+import main.java.com.yutgame.model.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -59,7 +55,7 @@ public class BoardPanel extends JPanel {
         g.fillRect(0, 0, getWidth(), getHeight());
 
         // 노드 간 라인 먼저 그림
-        Board board = game.getBoard();
+        YutBoard board = game.getBoard();
         for (BoardNode node : board.getNodes()) {
             drawNodeConnections(g, node);
         }
