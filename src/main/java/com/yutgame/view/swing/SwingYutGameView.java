@@ -76,11 +76,12 @@ public class SwingYutGameView extends JFrame {
     private void processAllThrows(YutThrowResult firstResult) {
         List<YutThrowResult> results = new ArrayList<>();
         results.add(firstResult);
-        YutThrowResult last = firstResult;
-        // 오직 윷(YUT) 또는 모(MO)가 나올 때만 재투척
-        while (last == YutThrowResult.YUT || last == YutThrowResult.MO) {
-            last = game.throwYutRandom();
-            results.add(last);
+        // 윷, 모 또는 잡기까지 연속 던지기
+        while (game.getLastThrowResult() == YutThrowResult.YUT
+        || game.getLastThrowResult() == YutThrowResult.MO
+        || game.hasExtraTurnFlag()) {
+            YutThrowResult nextResult = game.throwYutRandom();
+            results.add(nextResult);
         }
         applyThrowSelections(results);
     }
