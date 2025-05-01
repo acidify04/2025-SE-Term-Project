@@ -146,23 +146,13 @@ public class SwingYutGameView extends JFrame {
                 JOptionPane.showMessageDialog(this, "이동할 수 있는 경로가 없습니다.");
                 return;
             }
+            BoardNode chosenNextNode = chooseDestination(possibleNodes, "갈림길 선택");
+            if (chosenNextNode != null) {
+                game.movePiece(selectedPiece, chosenNextNode);
+            }
         }
 
-        List<BoardNode> possibleDests = game.getBoard().getPossibleNextNodes(currentNode, steps);
-        BoardNode chosenNode = chooseForkDestination(possibleDests);
-        if (chosenNode == null) {
-            // 사용자가 취소했거나 경로 없음
-            return;
-        }
-
-        // (D) 이동 -> 실제는 game.movePiece(...)가 잡기/업기/골인 처리
-        // 여기서는 갈림길만 선택하고, movePiece에 맡긴다
-        game.movePiece(selectedPiece, chosenNode);
-        // **주의**: 위에서 chosenNode를 직접 이동해도 되지만,
-        // MVC 관점에서는 game 내부 로직(갈림길 선택)을 한 번 더 조정할 수 있음.
-        // 간단히 여기서는 "첫번째 갈림길만" 이동이라면 chosenNode 쪽 커스텀 구현 가능.
-
-        // (E) 승리 여부 확인
+        // 승리 여부 확인
         if (game.isGameOver()) {
             JOptionPane.showMessageDialog(
                     this,
@@ -171,22 +161,21 @@ public class SwingYutGameView extends JFrame {
                     JOptionPane.INFORMATION_MESSAGE
             );
             // 재시작 or 종료
-            int ret = JOptionPane.showConfirmDialog(
+            int retry = JOptionPane.showConfirmDialog(
                     this,
                     "다시 시작하시겠습니까?",
                     "재시작",
                     JOptionPane.YES_NO_OPTION
             );
-            if (ret == JOptionPane.YES_OPTION) {
+            if (retry == JOptionPane.YES_OPTION) {
                 game.resetGame();
             } else {
                 System.exit(0);
             }
         } else {
-            // 턴 종료 -> nextTurn
+            // 턴 종료
             game.nextTurn();
         }
-
         boardPanel.repaint();
     }
 
