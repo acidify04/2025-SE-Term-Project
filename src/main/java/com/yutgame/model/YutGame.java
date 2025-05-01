@@ -126,13 +126,6 @@ public class YutGame {
         // 실제 이동 (사용자가 선택한 노드로 이동)
         piece.moveTo(targetNode); // 변경: targetNode 사용
 
-        // 빽도로 시작 위치 도달하면 말을 미출발 상태로
-        if (targetNode.equals(board.getStartNode()) &&
-                lastThrowResult == YutThrowResult.BAK_DO) {
-            // System.out.println("빽도로 시작 위치에 도달했으므로 말을 미출발 상태로 되돌립니다.");
-            piece.moveTo(null); // 미출발 처리
-            return;
-        }
 
         // 그룹된 말도 함께 이동
         List<Piece> movedGroup = new ArrayList<>();
@@ -279,18 +272,20 @@ public class YutGame {
 
     // 말 그룹 이동
     private void moveGroupWith(Piece piece, BoardNode targetNode, List<Piece> moved) {
-        if (moved.contains(piece)) return; // 중복 이동 방지
-        piece.moveTo(targetNode);
-        moved.add(piece);
+        if (moved.contains(piece)) return;
 
-        // 빽도 + 시작점에 도달한 경우 -> 미출발 상태로 전환
+        // 빽도 + 시작점 도달 시 -> 먼저 미출발 처리
         if (targetNode.equals(board.getStartNode()) &&
                 lastThrowResult == YutThrowResult.BAK_DO) {
-            // System.out.println("빽도로 시작점에 도달: " + piece.getOwner().getName() + "의 말 → 미출발 처리");
             piece.moveTo(null);
-            return;
+            moved.add(piece);
+            // return 하지 말고, grouped 말도 계속 처리!
+        } else {
+            piece.moveTo(targetNode);
+            moved.add(piece);
         }
 
+        // 무조건 grouped 말은 재귀 처리
         for (Piece child : piece.getGroupedPieces()) {
             moveGroupWith(child, targetNode, moved);
         }
