@@ -48,13 +48,6 @@ public class YutGame {
     }
 
     /**
-     * 외부에서 플레이어 목록을 가져갈 때 사용
-     */
-    public List<Player> getPlayers() {
-        return players;
-    }
-
-    /**
      * 무작위 윷 던지기.
      */
     public YutThrowResult throwYutRandom() {

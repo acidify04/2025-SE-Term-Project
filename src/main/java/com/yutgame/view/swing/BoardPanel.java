@@ -16,30 +16,17 @@ import java.util.List;
  */
 public class BoardPanel extends JPanel {
 
-    private YutGame game;
-    private Image pieceIconP1;
-    private Image pieceIconP2; // TODO: 플레이어 명수 선택 받도록 수정
-
-    // 노드/말 원의 크기 지정
     private static final int NODE_SIZE = 40;
     private static final int PIECE_SIZE = 30;
 
+    private YutGame game;
+    private Image pieceIconP1;
+    private Image pieceIconP2;
+
     public BoardPanel(YutGame game) {
         this.game = game;
-
         pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p1.png");
         pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece_p2.png");
-
-        // 마우스 클릭 -> 노드 범위 클릭 여부 확인, 디버그용
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                BoardNode clickedNode = findNodeAt(e.getX(), e.getY());
-                if (clickedNode != null) {
-                    System.out.println("Node clicked: " + clickedNode.getId());
-                }
-            }
-        });
     }
 
     @Override
@@ -83,19 +70,8 @@ public class BoardPanel extends JPanel {
         }
     }
 
-    private void drawConnections(Graphics g, BoardNode node) {
-        int x1 = node.getX() + NODE_SIZE/2;
-        int y1 = node.getY() + NODE_SIZE/2;
-        for (BoardNode next : node.getNextNodes()) {
-            int x2 = next.getX() + NODE_SIZE/2;
-            int y2 = next.getY() + NODE_SIZE/2;
-            g.drawLine(x1, y1, x2, y2);
-        }
-    }
-
     private void drawNode(Graphics g, BoardNode node) {
-        int x = node.getX();
-        int y = node.getY();
+        int x = node.getX(), y = node.getY();
         g.setColor(Color.LIGHT_GRAY);
         g.fillOval(x, y, NODE_SIZE, NODE_SIZE);
 
@@ -117,26 +93,5 @@ public class BoardPanel extends JPanel {
             g.drawImage(img, px, py, PIECE_SIZE, PIECE_SIZE, this);
             idx++;
         }
-    }
-
-    // TODO: 인원수 입력 받으면 수정
-    private Image pickIconForPlayer(Player owner) {
-        if ("P1".equals(owner.getName())) {
-            return pieceIconP1;
-        } else {
-            return pieceIconP2;
-        }
-    }
-
-    private BoardNode findNodeAt(int mx, int my) {
-        for (BoardNode node : game.getBoard().getNodes()) {
-            int nx = node.getX();
-            int ny = node.getY();
-            // 원 범위 검사
-            if (mx >= nx && mx <= nx + NODE_SIZE && my >= ny && my <= ny + NODE_SIZE) {
-                return node;
-            }
-        }
-        return null;
     }
 }
