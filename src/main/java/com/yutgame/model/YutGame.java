@@ -141,6 +141,13 @@ public class YutGame {
         if (isGoal(piece, prevNode, targetNode, containsStart)) {
             piece.setFinished(true);
             targetNode.removePiece(piece);
+            if (piece.isGroup()) {
+                // 그룹된 모든 말 골인 처리
+                for (Piece grouped : piece.getGroupedPieces()) {
+                    grouped.setFinished(true);
+                    targetNode.removePiece(grouped);
+                }
+            }
         }
 
         // 잡았다면 "한 번 더"
