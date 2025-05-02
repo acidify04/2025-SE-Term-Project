@@ -14,6 +14,7 @@ public class Piece {
     private BoardNode currentNode; // 현재 노드
     private boolean isFinished;    // 골인 여부
     private List<Piece> groupedPieces; // 업기(그룹)된 말 목록
+    private boolean isGrouped;  //그룹핑 여부
 
     public Piece(Player owner) {
         this.owner = owner;
@@ -73,6 +74,11 @@ public class Piece {
         if (!other.groupedPieces.contains(this)) {
             other.groupedPieces.add(this);
         }
+        isGrouped = true;
+    }
+
+    public boolean isGroup(){
+        return isGrouped;
     }
 
     /**
