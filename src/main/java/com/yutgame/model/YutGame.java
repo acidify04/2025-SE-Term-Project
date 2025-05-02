@@ -142,11 +142,7 @@ public class YutGame {
             piece.setFinished(true);
             targetNode.removePiece(piece);
             if (piece.isGroup()) {
-                // 그룹된 모든 말 골인 처리
-                for (Piece grouped : piece.getGroupedPieces()) {
-                    grouped.setFinished(true);
-                    targetNode.removePiece(grouped);
-                }
+                finishGroup(piece, targetNode);
             }
         }
 
@@ -157,6 +153,29 @@ public class YutGame {
 
         // 이동 후 승리 체크
         checkWinCondition();
+    }
+
+    private void finishGroup(Piece piece, BoardNode targetNode) {
+        List<Piece> queue = new ArrayList<>();
+        List<Piece> visited = new ArrayList<>();
+
+        queue.add(piece);
+
+        while (!queue.isEmpty()) {
+            Piece current = queue.remove(0);
+            if (visited.contains(current)) continue;
+
+            current.setFinished(true);
+            targetNode.removePiece(current);
+            visited.add(current);
+
+            // 연결된 그룹 말들을 큐에 추가
+            for (Piece grouped : current.getGroupedPieces()) {
+                if (!visited.contains(grouped)) {
+                    queue.add(grouped);
+                }
+            }
+        }
     }
 
     // 골인 판정 헬퍼 메소드 예시 (구체적인 구현 필요)
