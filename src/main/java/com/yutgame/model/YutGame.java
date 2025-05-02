@@ -106,7 +106,7 @@ public class YutGame {
      * - FINISH 노드면 골인 처리 (주의: 현재 구조에서는 START_FINISH 통과 시 골인 처리 필요)
      * - 이동 후 승리 여부 체크
      */
-    public void movePiece(Piece piece, BoardNode targetNode) { // 변경된 시그니처
+    public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) { // start node를 지나가는지 확인용 파라미터 추가
         if (piece == null || targetNode == null) {
             System.err.println("movePiece Error: piece or targetNode is null.");
             return;
@@ -138,7 +138,7 @@ public class YutGame {
         groupIfSameTeam(targetNode, piece.getOwner(), piece);
 
         // 골인 여부 체크
-        if (isGoal(piece, prevNode, targetNode)) {
+        if (isGoal(piece, prevNode, targetNode, containsStart)) {
             piece.setFinished(true);
             targetNode.removePiece(piece);
         }
@@ -153,11 +153,8 @@ public class YutGame {
     }
 
     // 골인 판정 헬퍼 메소드 예시 (구체적인 구현 필요)
-    private boolean isGoal(Piece piece, BoardNode prevNode, BoardNode targetNode) {
-        if (targetNode.getId().contains("FINISH")) {
-            return true;
-        }
-        if (targetNode.equals(board.getStartNode()) && prevNode != null) {
+    private boolean isGoal(Piece piece, BoardNode prevNode, BoardNode targetNode, boolean containsStart) {
+        if ((targetNode.getId().contains("START_NODE") && prevNode != null) || containsStart == true) {
             return true;
         }
         return false;

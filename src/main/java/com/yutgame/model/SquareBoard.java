@@ -8,6 +8,9 @@ public class SquareBoard implements YutBoard {
     // 보드에 속한 모든 노드
     private List<BoardNode> nodes;
 
+    // 완주 확인용 : path에 start node가 포함되는지
+    private List<BoardNode> paths = new ArrayList<>();
+
     private SquareBoard(List<BoardNode> nodes) {
         this.nodes = nodes;
     }
@@ -147,6 +150,7 @@ public class SquareBoard implements YutBoard {
 
     private void dfsPaths(BoardNode node, int steps, List<BoardNode> path, List<BoardNode> results) {
         path.add(node);
+        paths.add(node);
 
         if (steps == 0) {
             // 도달
@@ -191,6 +195,18 @@ public class SquareBoard implements YutBoard {
         }
         path.removeLast();
     }
+
+    public List<BoardNode> getPaths() {
+        if (!paths.isEmpty()) {
+            paths.remove(0);
+        }
+        return paths;
+    }
+
+    public void pathClear(){
+        paths.clear();
+    }
+
     /**
      * ID로 노드 찾기 헬퍼 메서드
      */

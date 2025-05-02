@@ -16,6 +16,7 @@ public class SwingYutGameView extends JFrame {
     private JButton randomThrowButton;
     private JButton manualThrowButton;
     private boolean isRandomThrow = false;
+    private boolean containsStart = false;
 
     public SwingYutGameView() {
         // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
@@ -223,16 +224,52 @@ public class SwingYutGameView extends JFrame {
             if (steps < 0) {
                 List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
                 BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
-                if (dest != null) game.movePiece(selected, dest);
+                if (dest != null) game.movePiece(selected, dest, containsStart);
             } else {
                 List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
+                List<BoardNode> path = game.getBoard().getPaths();
+
                 BoardNode dest;
                 if (isCrossroad(curr) && cans.size() > 1) {
                     dest = chooseDestination(cans, "갈림길 선택");
                 } else {
                     dest = cans.isEmpty() ? null : cans.get(0);
                 }
-                if (dest != null) game.movePiece(selected, dest);
+                if (dest != null) {
+                    // 완주 처리 관련 로직 : path에 start가 있는가
+                    String destId = dest.getId();  // 선택된 목적지 노드의 ID
+                    int destIndex = -1;
+
+                    for (int i = 0; i < path.size(); i++) {
+                        if (destId.equals(path.get(i).getId())) {
+                            destIndex = i;
+                            break;
+                        }
+                    }
+                    if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
+                        List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
+                        path.clear();
+                        path.addAll(trimmed);
+                    } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
+                        List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
+                        path.clear();
+                        path.addAll(trimmed);
+                    } else {
+                        System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
+                    }
+                    // 콘솔 출력용 추가
+                    /*
+                    * System.out.println("노드 탐색 결과 (선택 길)");
+                    for (BoardNode cur : path) {
+                        System.out.println(cur.getId());
+                    }*/
+                    containsStart = path.stream()
+                            .anyMatch(node -> "START_NODE".equals(node.getId()));
+                    // System.out.println("START_NODE 포함 여부: " + containsStart);  //디버깅용
+                    game.getBoard().pathClear();
+
+                    game.movePiece(selected, dest, containsStart);
+                }
             }
             boardPanel.repaint();
         }
