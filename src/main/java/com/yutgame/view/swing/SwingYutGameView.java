@@ -283,12 +283,20 @@ public class SwingYutGameView extends JFrame {
     private Piece selectPiece(Player player) {
         List<Piece> allPieces = player.getPieces();
 
+        // 완주한 말 제외
+        List<Piece> nonfinished = new ArrayList<>();
+        for (Piece p : allPieces) {
+            if (!p.isFinished()) {
+                nonfinished.add(p);
+            }
+        }
+
         // 현재 윷 결과가 빽도인지 확인
         boolean isBakdo = game.getLastThrowResult() == YutThrowResult.BAK_DO;
 
         // 빽도일 경우 출발한 말만 필터링
         List<Piece> selectable = new ArrayList<>();
-        for (Piece p : allPieces) {
+        for (Piece p : nonfinished) {
             if (!isBakdo || p.getCurrentNode() != null) {
                 selectable.add(p);
             }
