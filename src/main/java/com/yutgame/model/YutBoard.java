@@ -14,4 +14,10 @@ public interface YutBoard {
 
     // 특정 노드에서 가능한 이전 노드 (백도 참고용)
     List<BoardNode> getPossiblePreviousNodes(BoardNode target);
+
+    // 현재 노드에서 steps 만큼 전진할 때 거치는 모든 노드 (isgoal에 사용)
+    List<BoardNode> getPaths();
+
+    // path 리셋
+    void pathClear();
 }
