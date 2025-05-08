@@ -26,7 +26,7 @@ public class HexagonBoard implements YutBoard {
         int minY = margin;     // 50
         int maxY = margin + 500; // 550
 
-        BoardNode C1 = new BoardNode("C1", 50, 300);
+        BoardNode C1 = new BoardNode("C1", 50, 300);        // start node
         BoardNode C2 = new BoardNode("C2", 175, 550);
         BoardNode C3 = new BoardNode("C3", 425, 550);
         BoardNode C4 = new BoardNode("C4", 550, 300);
@@ -124,7 +124,7 @@ public class HexagonBoard implements YutBoard {
     public BoardNode getStartNode() {
         // START_NODE ID를 가진 노드를 찾아 반환
         return nodes.stream()
-                .filter(n -> "START_NODE".equals(n.getId()))
+                .filter(n -> "C1".equals(n.getId()))
                 .findFirst()
                 .orElse(null);
     }
@@ -156,33 +156,26 @@ public class HexagonBoard implements YutBoard {
             return;
         }
 
-        // CENTER_NODE 특별 처리
-        if ("CENTER_NODE".equals(node.getId()) && !path.isEmpty()) {
-            // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
-            BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
-
-            if (prevNode != null) {
-                String prevId = prevNode.getId();
-                BoardNode nextNode = null;
-
-                // NE2에서 온 경우 SW1로 진행
-                if ("NE2".equals(prevId)) {
-                    nextNode = findNodeById(node.getNextNodes(), "SW1");
-                }
-                // NW2에서 온 경우 SE1로 진행
-                else if ("NW2".equals(prevId)) {
-                    nextNode = findNodeById(node.getNextNodes(), "SE1");
-                }
-
-                // 특별 경로가 결정된 경우
+        // CENTER에서 출발하면 무조건 a1로 이동, 스쳐 지나가는 경우 f1로 이동
+        if ("CENTER".equals(node.getId())) {
+            if (steps == 0) {
+                // 딱 CENTER에 멈춘 경우 → a1 방향 고정
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
                 if (nextNode != null) {
-                    dfsPaths(nextNode, steps-1, path, results);
+                    dfsPaths(nextNode, steps - 1, path, results);
                     path.removeLast();
-                    return; // 다른 경로는 탐색하지 않음
+                    return;
+                }
+            } else {
+                // 그냥 지나치는 경우 → f1 방향 고정
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "f1");
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
                 }
             }
         }
-
 
         // 갈림길 (nextNodes) 탐색
         for (BoardNode nxt : node.getNextNodes()) {
