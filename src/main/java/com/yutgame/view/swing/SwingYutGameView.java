@@ -112,16 +112,19 @@ public class SwingYutGameView extends JFrame {
      */
     private void processAllThrows(YutThrowResult firstResult) {
         List<YutThrowResult> results = new ArrayList<>();
+        JOptionPane.showMessageDialog(this, "던진 윷 결과: " + firstResult);
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
         while (game.getLastThrowResult() == YUT
         || game.getLastThrowResult() == YutThrowResult.MO) {
+            JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
             YutThrowResult nextResult;
             if (isRandomThrow) {
                 nextResult = game.throwYutRandom();
             } else {
                 nextResult = getSetYutResult();
             }
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: " + nextResult);
             results.add(nextResult);
         }
         applyThrowSelections(results);
@@ -170,12 +173,14 @@ public class SwingYutGameView extends JFrame {
             }
         }
 
+        /*
         for (YutThrowResult result : results) {
-            JOptionPane.showMessageDialog(this, "던진 윷 결과: " + result);
             if (results.size() > 1 && (result == YUT || result == YutThrowResult.MO)) {
                 JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
             }
         }
+         */
+
         if (results.size() > 1) {
             while (!results.isEmpty()) {
                 String[] options = results.stream()
