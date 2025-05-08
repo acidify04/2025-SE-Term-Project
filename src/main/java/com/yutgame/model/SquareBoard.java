@@ -29,10 +29,10 @@ public class SquareBoard implements YutBoard {
         int maxY = margin+500; // 550
 
         BoardNode startNode  = new BoardNode("START_NODE", maxX, maxY);  // (550,550)
-        BoardNode cornerNE   = new BoardNode("CORNER_NE", maxX, minY);   // (550,50)
-        BoardNode cornerNW   = new BoardNode("CORNER_NW", minX, minY);   // (50,50)
-        BoardNode cornerSW   = new BoardNode("CORNER_SW", minX, maxY);   // (50,550)
-        BoardNode centerNode = new BoardNode("CENTER_NODE", center, center);
+        BoardNode cornerNE   = new BoardNode("A", maxX, minY);   // (550,50)
+        BoardNode cornerNW   = new BoardNode("B", minX, minY);   // (50,50)
+        BoardNode cornerSW   = new BoardNode("C", minX, maxY);   // (50,550)
+        BoardNode centerNode = new BoardNode("CENTER", center, center);
 
         // 노드 이름 설정 및 노드 (테두리)
         BoardNode e1 = new BoardNode("E1", maxX, maxY - 100);
@@ -162,7 +162,7 @@ public class SquareBoard implements YutBoard {
         }
 
         // CENTER_NODE 특별 처리
-        if ("CENTER_NODE".equals(node.getId()) && !path.isEmpty()) {
+        if ("CENTER".equals(node.getId()) && !path.isEmpty()) {
             // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
             BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
 

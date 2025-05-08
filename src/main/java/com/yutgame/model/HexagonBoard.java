@@ -26,12 +26,12 @@ public class HexagonBoard implements YutBoard {
         int minY = margin;     // 50
         int maxY = margin + 500; // 550
 
-        BoardNode C1 = new BoardNode("C1", 50, 300);        // start node
-        BoardNode C2 = new BoardNode("C2", 175, 550);
-        BoardNode C3 = new BoardNode("C3", 425, 550);
-        BoardNode C4 = new BoardNode("C4", 550, 300);
-        BoardNode C5 = new BoardNode("C5", 425, 50);
-        BoardNode C6 = new BoardNode("C6", 175, 50);
+        BoardNode C1 = new BoardNode("START_NODE", 50, 300);
+        BoardNode C2 = new BoardNode("A", 175, 550);
+        BoardNode C3 = new BoardNode("B", 425, 550);
+        BoardNode C4 = new BoardNode("C", 550, 300);
+        BoardNode C5 = new BoardNode("D", 425, 50);
+        BoardNode C6 = new BoardNode("E", 175, 50);
         BoardNode CENTER = new BoardNode("CENTER", center, center);
 
         // 노드 이름 설정 및 생성 (테두리)
