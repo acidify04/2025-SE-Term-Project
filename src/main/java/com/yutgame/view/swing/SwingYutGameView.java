@@ -82,7 +82,7 @@ public class SwingYutGameView extends JFrame {
         YutBoard board;
         switch (boardChoice) {
             case 0 -> board = SquareBoard.createStandardBoard();
-            case 1 -> board = SquareBoard.createStandardBoard(); // 오각형
+            case 1 -> board = PentagonBoard.createPentagonBoard(); // 오각형
             case 2 -> board = HexagonBoard.createHexagonBoard();   // 육각형
             default -> {
                 JOptionPane.showMessageDialog(null, "보드 선택이 취소되었습니다.");
@@ -196,14 +196,6 @@ public class SwingYutGameView extends JFrame {
             }
         }
 
-        /*
-        for (YutThrowResult result : results) {
-            if (results.size() > 1 && (result == YUT || result == YutThrowResult.MO)) {
-                JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
-            }
-        }
-         */
-
         if (results.size() > 1) {
             while (!results.isEmpty()) {
                 String[] options = results.stream()
@@ -254,10 +246,14 @@ public class SwingYutGameView extends JFrame {
                 BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
                 if (dest != null) game.movePiece(selected, dest, containsStart);
             } else {
+                System.out.println("\n\n new move");
                 List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
                 List<BoardNode> path = game.getBoard().getPaths();
 
                 BoardNode dest;
+                System.out.println("cans size: " + cans.size());
+                System.out.println("isCrossroad: " + isCrossroad(curr));
+
                 if (isCrossroad(curr) && cans.size() > 1) {
                     dest = chooseDestination(cans, "갈림길 선택");
                 } else {
@@ -305,7 +301,7 @@ public class SwingYutGameView extends JFrame {
 
     private boolean isCrossroad(BoardNode node) {
         String id = node.getId();
-        return "CORNER_NE".equals(id) || "CORNER_NW".equals(id) || "CENTER_NODE".equals(id);
+        return "CENTER".equals(id) || "A".equals(id) || "B".equals(id) || "C".equals(id) || "D".equals(id) || "E".equals(id);
     }
 
     private Piece selectPiece(Player player) {
