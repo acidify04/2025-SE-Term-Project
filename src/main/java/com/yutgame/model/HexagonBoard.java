@@ -156,17 +156,26 @@ public class HexagonBoard implements YutBoard {
             return;
         }
 
-        // CENTER_NODE 특별 처리
-        // CENTER에서 출발하면 무조건 a1로 이동
+        // CENTER에서 출발하면 무조건 a1로 이동, 스쳐 지나가는 경우 f1로 이동
         if ("CENTER".equals(node.getId())) {
-            BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
-            if (nextNode != null) {
-                dfsPaths(nextNode, steps - 1, path, results);
-                path.removeLast();
-                return;
+            if (steps == 0) {
+                // 딱 CENTER에 멈춘 경우 → a1 방향 고정
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
+            } else {
+                // 그냥 지나치는 경우 → f1 방향 고정
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "f1");
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
             }
         }
-
 
         // 갈림길 (nextNodes) 탐색
         for (BoardNode nxt : node.getNextNodes()) {

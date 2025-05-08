@@ -305,7 +305,8 @@ public class SwingYutGameView extends JFrame {
 
     private boolean isCrossroad(BoardNode node) {
         String id = node.getId();
-        return "CORNER_NE".equals(id) || "CORNER_NW".equals(id) || "CENTER_NODE".equals(id);
+        return "CORNER_NE".equals(id) || "CORNER_NW".equals(id) || "CENTER_NODE".equals(id)
+                || "C2".equals(id) || "C3".equals(id) || "C4".equals(id) || "C5".equals(id) || "C6".equals(id);
     }
 
     private Piece selectPiece(Player player) {
