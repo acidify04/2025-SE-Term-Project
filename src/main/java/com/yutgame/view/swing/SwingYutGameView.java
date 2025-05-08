@@ -55,6 +55,19 @@ public class SwingYutGameView extends JFrame {
             }
         }
 
+        String[] boardOptions = {"사각형", "오각형", "육각형"};
+        int boardChoice = JOptionPane.showOptionDialog(
+                null,
+                "보드 형태를 선택하세요:",
+                "보드 설정",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                boardOptions,
+                boardOptions[0]
+        );
+
+
         List<Player> players = new ArrayList<>();
         for (int i = 1; i <= playerCount; i++) {
             Player player = new Player("P" + i, new ArrayList<>());
@@ -65,7 +78,17 @@ public class SwingYutGameView extends JFrame {
             players.add(player);
         }
 
-        YutBoard board = SquareBoard.createStandardBoard();
+        YutBoard board;
+        switch (boardChoice) {
+            case 0 -> board = SquareBoard.createStandardBoard();
+            case 1 -> board = SquareBoard.createStandardBoard(); // 오각형
+            case 2 -> board = HexagonBoard.createHexagonBoard();   // 육각형
+            default -> {
+                JOptionPane.showMessageDialog(null, "보드 선택이 취소되었습니다.");
+                System.exit(0);
+                return;
+            }
+        }
         this.game = new YutGame(players, board);
         // ----------------------------------------------------------
 
