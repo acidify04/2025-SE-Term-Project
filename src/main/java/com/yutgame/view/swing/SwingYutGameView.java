@@ -212,6 +212,13 @@ public class SwingYutGameView extends JFrame {
                         options,
                         options[0]
                 );
+
+                // ✨ 사용자가 선택 안 하고 닫았을 때 예외 방지
+                if (choice == -1) {
+                    JOptionPane.showMessageDialog(this, "이동 선택이 취소되었습니다. 턴을 넘깁니다.");
+                    return;
+                }
+
                 YutThrowResult chosenResult = results.remove(choice);
                 moveNode(currentPlayer, chosenResult);
             }
