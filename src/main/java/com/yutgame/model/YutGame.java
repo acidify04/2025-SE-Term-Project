@@ -19,6 +19,7 @@ public class YutGame {
     private YutThrowResult lastThrowResult; // 최근 윷 결과
 
     private boolean extraTurnFlag;     // "잡으면 한 번 더" 발생 플래그
+    private int extraThrowsPending; // 남아있는 한 번 더 던지기 횟수
 
     private Random random;
 
@@ -30,6 +31,7 @@ public class YutGame {
         this.winner = null;
         this.lastThrowResult = null;
         this.extraTurnFlag = false;
+        this.extraThrowsPending = 0;
         this.random = new Random();
     }
 
@@ -47,32 +49,54 @@ public class YutGame {
 
     /**
      * 무작위 윷 던지기.
+     * 1) 대기 중(extraThrowsPending)이 있으면 먼저 1회 소모.
+     * 2) 결과가 윷·모면 extraThrowsPending += 1.
+     * 3) extraTurnFlag 는 남은 대기 여부로만 결정.
      */
     public YutThrowResult throwYutRandom() {
+
+        /* ❶ 대기 중 기회 먼저 소모 */
+        if (extraThrowsPending > 0) extraThrowsPending--;
+
+        /* ❷ 실제 던지기 */
         int r = random.nextInt(16);
         YutThrowResult result;
-        if (r == 0) {
-            result = YutThrowResult.BAK_DO;
-        } else if (r == 1 || r == 2 || r == 3) {
-            result = YutThrowResult.DO;
-        } else if (r == 4 || r == 5 || r == 6 || r == 7) {
-            result = YutThrowResult.GEOL;
-        } else if (r == 8) {
-            result = YutThrowResult.YUT;
-        } else if (r == 9) {
-            result = YutThrowResult.MO;
-        } else {
-            result = YutThrowResult.GAE;
-        }
+        if (r == 0)                       result = YutThrowResult.BAK_DO;
+        else if (r < 4)                   result = YutThrowResult.DO;
+        else if (r < 8)                   result = YutThrowResult.GEOL;
+        else if (r == 8)                  result = YutThrowResult.YUT;
+        else if (r == 9)                  result = YutThrowResult.MO;
+        else                              result = YutThrowResult.GAE;
+
         this.lastThrowResult = result;
+
+        /* ❸ 윷·모면 ‘한 번 더’ */
+        if (result == YutThrowResult.YUT || result == YutThrowResult.MO) {
+            extraThrowsPending++;
+        }
+
+        /* ❹ 플래그 갱신 */
+        extraTurnFlag = extraThrowsPending > 0;
         return result;
     }
 
     /**
-     * 지정 윷 던지기 (테스트/디버그용).
+     * 지정 결과로 윷 던지기(테스트용).
+     * 내부 로직은 throwYutRandom() 과 동일하게 처리.
      */
     public void throwYutManual(YutThrowResult manualResult) {
+
+        /* 대기 중 기회 소모 */
+        if (extraThrowsPending > 0) extraThrowsPending--;
+
         this.lastThrowResult = manualResult;
+
+        /* 윷/모면 추가 1회 */
+        if (manualResult == YutThrowResult.YUT || manualResult == YutThrowResult.MO) {
+            extraThrowsPending++;
+        }
+
+        extraTurnFlag = extraThrowsPending > 0;
     }
 
     public YutThrowResult getLastThrowResult() {
@@ -108,6 +132,12 @@ public class YutGame {
      *   · 뒤로 간 자리에서 잡기 / 업기 / 골인 여부만 체크
      *   · 추가 이동 경로 기록은 하지 않는다
      */
+
+    /**
+     * 말 이동(전진 · 빽도) + 잡기/업기/골인 처리.
+     * ① 윷/모·잡기 등으로 생긴 '한 번 더 던지기'는 extraThrowsPending으로 누적 관리.
+     * ② 말을 잡으면 extraThrowsPending++ 후 즉시 nextTurn() 호출 → 잡자마자 다시 윷을 던질 수 있다.
+     */
     public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) {
         if (piece == null) {
             System.err.println("movePiece Error: piece is null.");
@@ -117,41 +147,42 @@ public class YutGame {
         /* ──────────────────── ❶ 빽도(BAK_DO) 전용 처리 ──────────────────── */
         if (lastThrowResult == YutThrowResult.BAK_DO) {
 
-            /* 1) 현재 말이 START_NODE에 있거나 뒤로 갈 히스토리가 없으면 → 오류 메시지 */
+            // 1) START 에 있거나 뒤로 갈 히스토리가 없으면 → 무효
             if (!canMoveBack(piece)) {
                 System.out.println("시작지점에서 빽도를 사용하실 수 없습니다.");
 
-                // 1-A) 같은 팀 말 중 빽도 가능한 말이 하나라도 있으면: 턴 유지(선택 다시)
+                // 같은 팀에 빽도 가능한 말이 없다면 턴 종료
                 boolean hasOther = false;
                 for (Piece p : piece.getOwner().getPieces()) {
                     if (p != piece && canMoveBack(p)) { hasOther = true; break; }
                 }
-
-                // 1-B) 아무 말도 빽도 불가 → 턴 자동 패스
-                if (!hasOther) {
-                    extraTurnFlag = false;      // 추가 턴 무효
-                    nextTurn();                 // 즉시 다음 플레이어에게 넘김
-                }
-                return;                         // 더 이상 처리하지 않음
+                if (!hasOther) extraTurnFlag = false;
+                return;
             }
 
-            /* 2) 정상적인 빽도 처리 */
-            moveGroupBackOneStep(piece);
+            // 2) 한 칸 뒤로 이동
+            BoardNode prevNode = piece.getCurrentNode();
+            piece.moveBackOneStep();
             BoardNode newNode = piece.getCurrentNode();
 
-            // ② 잡기 / 업기 / 골인 체크 (전진과 동일 로직 재사용)
-            boolean didCapture = captureIfNeeded(newNode, piece.getOwner());
-            groupIfSameTeam(newNode, piece.getOwner(), piece);
-            if (isGoal(piece, null, newNode, containsStart)) {   // prevNode 필요 X
+            // 3) 잡기
+            boolean captured = captureIfNeeded(newNode, piece.getOwner());
+            if (captured) {
+                extraThrowsPending++;    // 잡으면 추가 1회
+                extraTurnFlag = true;
+            }
+
+            // 4) 골인/업기/승리 체크
+            if (isGoal(piece, prevNode, newNode, containsStart)) {
                 piece.setFinished(true);
                 newNode.removePiece(piece);
-                if (piece.isGroup()) {
-                    finishGroup(piece, newNode);
-                }
+                if (piece.isGroup()) finishGroup(piece, newNode);
             }
-            if (didCapture) extraTurnFlag = true;
-
             checkWinCondition();
+
+            // 5) 잡았으면 즉시 다시 던질 수 있도록 턴 전환
+            if (captured) nextTurn();
+
             System.out.println("[DEBUG] === movePiece end (BAK_DO) ===");
             return;   // 빽도 처리 종료
         }
@@ -163,22 +194,15 @@ public class YutGame {
         }
 
         BoardNode prevNode = piece.getCurrentNode();
-        if (prevNode == null) prevNode = board.getStartNode();   // 미출발 말
+        List<BoardNode> path = findShortestPath(prevNode, targetNode);
 
-        // 1) prevNode → targetNode 최단 경로를 BFS 로 계산해 전부 기록
-        List<BoardNode> fullPath = findShortestPath(prevNode, targetNode);
-        for (BoardNode node : fullPath) {
-            piece.recordNode(node);   // 중복 자동 방지 + 실시간 디버그
-        }
+        // 1) 경로 중간 칸 이동(시각화 기록용)
+        for (BoardNode step : path) piece.moveTo(step);
 
-        // 2) 실제 이동
+        // 2) 최종 칸 이동
         piece.moveTo(targetNode);
 
-        // 3) 그룹된 말 동시 이동
-        List<Piece> movedGroup = new ArrayList<>();
-        moveGroupWith(piece, targetNode, movedGroup);
-
-        // 4) 잡기 / 업기 / 골인
+        // 3) 잡기 / 업기 / 골인
         boolean didCapture = false;
         if (!isGoal(piece, prevNode, targetNode, containsStart)) {
             didCapture = captureIfNeeded(targetNode, piece.getOwner());
@@ -188,15 +212,19 @@ public class YutGame {
         if (isGoal(piece, prevNode, targetNode, containsStart)) {
             piece.setFinished(true);
             targetNode.removePiece(piece);
-            if (piece.isGroup()) {
-                finishGroup(piece, targetNode);
-            }
+            if (piece.isGroup()) finishGroup(piece, targetNode);
         }
-        if (didCapture) extraTurnFlag = true;
+
+        if (didCapture) {
+            extraThrowsPending++;   // 잡으면 추가 1회
+            extraTurnFlag = true;
+        }
 
         checkWinCondition();
 
-        // ─ 디버그용 종결선
+        // 4) 잡았을 경우 즉시 추가 던지기 기회를 주기 위해 턴 전환
+        if (didCapture) nextTurn();
+
         System.out.println("[DEBUG] === movePiece end ===");
     }
 
@@ -303,19 +331,38 @@ public class YutGame {
 
     /**
      * 턴 진행:
-     * - 윷/모: 연속 턴
-     * - 잡으면 한 번 더(extraTurnFlag=true)도 연속 턴
-     * - 그 외(bakdo/do/gae/geol) -> 다음 플레이어
+     * - 윷/모: 1회 추가
+     * - 잡기(extraTurnFlag): 1회 추가
+     *   ▸ 두 상황이 동시에 발생하면 총 2회가 보장돼야 하므로
+     *     첫 번째 턴 후에도 extraTurnFlag를 한 번 더 유지한다.
+     */
+    /**
+     * 턴 진행:
+     * - 윷/모: 1회 추가
+     * - 잡기(extraTurnFlag): 1회 추가
+     *   ▸ 두 조건이 동시에 일어나면 총 2회가 필요하므로
+     *     extraTurnFlag를 한 번 더 유지한다.
+     * - 추가 턴을 소비했으므로 lastThrowResult는 null로 리셋.
+     */
+    /**
+     * 턴 진행:
+     * - extraThrowsPending > 0 ⇒ 같은 플레이어가 이어서 던진다.
+     *   (extraTurnFlag true, lastThrowResult null 로 리셋)
+     * - pending == 0 ⇒ 다음 플레이어에게 턴 넘김.
      */
     public void nextTurn() {
-        if (lastThrowResult == YutThrowResult.YUT
-                || lastThrowResult == YutThrowResult.MO
-                || extraTurnFlag) {
-            // 추가 턴 유지
-        } else {
-            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+
+        if (extraThrowsPending > 0) {
+            // 아직 ‘한 번 더’가 남아 있다.
+            extraTurnFlag  = true;
+            lastThrowResult = null;   // 직전 결과는 소진 완료
+            return;
         }
-        extraTurnFlag = false;
+
+        // 추가 기회가 없으면 다음 플레이어로
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+        extraTurnFlag  = false;
+        lastThrowResult = null;
     }
 
     /**
