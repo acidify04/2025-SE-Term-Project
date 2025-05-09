@@ -25,7 +25,8 @@ public class BoardPanel extends JPanel {
     private final Image pieceIconP3;
     private final Image pieceIconP4;
 
-    public BoardPanel() {
+    public BoardPanel(YutGameController controller) {
+        this.controller = controller;
         pieceIconP1 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece1.png");
         pieceIconP2 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece2.png");
         pieceIconP3 = Toolkit.getDefaultToolkit().createImage("src/main/resources/piece3.png");

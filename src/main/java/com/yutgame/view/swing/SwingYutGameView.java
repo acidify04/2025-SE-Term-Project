@@ -20,6 +20,10 @@ public class SwingYutGameView extends JFrame {
     private boolean isRandomThrow = false;
     private boolean containsStart = false;
     private YutGameController controller;
+    private int playerCount;
+    private int pieceCount;
+    private int boardChoice;
+
 
     public SwingYutGameView() {
         // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
@@ -47,10 +51,6 @@ public class SwingYutGameView extends JFrame {
                 JOptionPane.PLAIN_MESSAGE
         );
 
-        int playerCount = 0;
-        int pieceCount = 0;
-        int boardChoice = 0;
-
         if (result == JOptionPane.OK_OPTION) {
             playerCount = playerCombo.getSelectedIndex() + 2; // 2인부터 시작
             pieceCount = pieceCombo.getSelectedIndex() + 2;   // 2개부터 시작
@@ -64,13 +64,12 @@ public class SwingYutGameView extends JFrame {
         // 윷 게임 생성 (컨트롤러 이용)
         try {
 //            this.game = YutGameFactory.createGame(playerCount, pieceCount, boardChoice);
-            this.controller = new YutGameController();
-            controller.setGame(YutGameFactory.createGame(playerCount, pieceCount, boardChoice));
+//            this.controller = new YutGameController();
+            //controller.setGame(YutGameController.createGame(playerCount, pieceCount, boardChoice));
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
             System.exit(0);
         }
-
         // ----------------------------------------------------------
 
         // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
@@ -87,13 +86,25 @@ public class SwingYutGameView extends JFrame {
 
         add(topPanel, BorderLayout.NORTH);
 
-        boardPanel = new BoardPanel();
-        add(boardPanel, BorderLayout.CENTER);
+//        boardPanel = new BoardPanel();
+        // add(boardPanel, BorderLayout.CENTER);
 
         initButtonListeners();
 
-        controller.startGame();
+        //controller.startGame();
         // ----------------------------------------------------------
+    }
+
+    public int getPlayerCount() {
+        return playerCount;
+    }
+
+    public int getPieceCount() {
+        return pieceCount;
+    }
+
+    public int getBoardChoice() {
+        return boardChoice;
     }
 
     private void initButtonListeners() {
@@ -476,5 +487,18 @@ public class SwingYutGameView extends JFrame {
 
     public void setController(YutGameController controller) {
         this.controller = controller;
+        this.boardPanel = new BoardPanel(controller);
+
+        add(boardPanel, BorderLayout.CENTER);
+        revalidate();  // 레이아웃 다시 계산
+        repaint();     // 화면 갱신
+    }
+
+    // SwingYutGameView.java
+    public void initBoardPanel() {
+        this.boardPanel = new BoardPanel(controller);
+        add(boardPanel, BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
 }
