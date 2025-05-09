@@ -1,6 +1,7 @@
 package main.java.com.yutgame.view.swing;
 
 import main.java.com.yutgame.model.*;
+import main.java.com.yutgame.view.swing.BoardPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -128,7 +129,7 @@ public class SwingYutGameView extends JFrame {
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
         while (game.getLastThrowResult() == YUT
-        || game.getLastThrowResult() == YutThrowResult.MO) {
+                || game.getLastThrowResult() == YutThrowResult.MO) {
             JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
             YutThrowResult nextResult;
             if (isRandomThrow) {
@@ -251,6 +252,9 @@ public class SwingYutGameView extends JFrame {
 
                 YutThrowResult chosenResult = results.remove(choice);
                 moveNode(currentPlayer, chosenResult);
+                if (game.isGameOver()) {
+                    break;
+                }
             }
 
         } else moveNode(currentPlayer, results.get(0));
@@ -408,35 +412,43 @@ public class SwingYutGameView extends JFrame {
             choices.add(p);
         }
 
-        /* 2) 선택 가능한 말이 없다 → UI 메시지 & 턴 패스 */
-        if (choices.isEmpty()) {
-            String msg = isBakdo
-                    ? "시작지점에서 빽도를 사용하실 수 없습니다."
-                    : "이 플레이어는 이동 가능한 말이 없습니다.";
-            JOptionPane.showMessageDialog(this, msg, "선택 불가", JOptionPane.WARNING_MESSAGE);
-
-            // 턴 넘기기
-            game.nextTurn();
-            boardPanel.repaint();
+        if (player.allPiecesFinished()){
+            System.out.println("all finish");
+            game.checkWinCondition();
+            if (game.isGameOver()) {
+                JOptionPane.showMessageDialog(this, "승리자: " + game.getWinner().getName());
+                System.exit(0);
+            }
             return null;
+        }else {
+            /* 2) 선택 가능한 말이 없다 → UI 메시지 & 턴 패스 */
+            if (choices.isEmpty()) {
+                String msg = isBakdo
+                        ? "시작지점에서 빽도를 사용하실 수 없습니다."
+                        : "이 플레이어는 이동 가능한 말이 없습니다.";
+                JOptionPane.showMessageDialog(this, msg, "선택 불가", JOptionPane.WARNING_MESSAGE);
+
+                // 턴 넘기기
+                game.nextTurn();
+                boardPanel.repaint();
+                return null;
+            }
+
+            /* 3) 실제 선택 다이얼로그 */
+            int ch = JOptionPane.showOptionDialog(
+                    this,
+                    "이동할 말을 선택하세요 (" + player.getName() + ")",
+                    "말 선택",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    descs.toArray(new String[0]),
+                    descs.get(0)
+            );
+
+            return (ch < 0 || ch >= choices.size()) ? null : choices.get(ch);
         }
-
-        /* 3) 실제 선택 다이얼로그 */
-        int ch = JOptionPane.showOptionDialog(
-                this,
-                "이동할 말을 선택하세요 (" + player.getName() + ")",
-                "말 선택",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                descs.toArray(new String[0]),
-                descs.get(0)
-        );
-
-        return (ch < 0 || ch >= choices.size()) ? null : choices.get(ch);
     }
-
-
 
     private BoardNode chooseDestination(List<BoardNode> cands, String title, int index) {
         if (cands.size() == 1) return cands.get(0);
