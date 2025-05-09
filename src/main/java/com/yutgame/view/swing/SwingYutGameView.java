@@ -365,80 +365,66 @@ public class SwingYutGameView extends JFrame {
     }
 
 
+    /**
+     * 이동할 말을 선택한다.
+     * - 빽도(BAK_DO)일 때는 "뒤로 갈 수 있는 말"만 선택지로 노출
+     *   (START_NODE에 있거나 히스토리가 1칸 이하인 말은 제외)
+     * - 선택지가 없으면:
+     *      · 빽도  → "시작지점에서 빽도를 사용하실 수 없습니다." UI 출력 후 턴 패스
+     *      · 그 외 → 기존 안내 후 턴 패스
+     */
     private Piece selectPiece(Player player, YutThrowResult chosenResult) {
         List<Piece> allPieces = player.getPieces();
 
-        // 완주하지 않은 말만 선별
-        List<Piece> nonfinished = new ArrayList<>();
-        for (Piece p : allPieces) {
-            if (!p.isFinished()) {
-                nonfinished.add(p);
-            }
-        }
-
-        // 현재 윷 결과가 빽도인지 확인
         boolean isBakdo = chosenResult == YutThrowResult.BAK_DO;
+        BoardNode start = game.getBoard().getStartNode();
 
-        // 선택지 구성
-        List<String> descs = new ArrayList<>();
-        List<Piece> choices = new ArrayList<>();
+        /* 1) 선택 리스트 준비 */
+        List<String> descs  = new ArrayList<>();
+        List<Piece>  choices = new ArrayList<>();
 
-        // 미출발 말 중 첫 번째 말만 추가
+        // 1-A) 미출발 말 1개(빽도 제외)
         if (!isBakdo) {
-            for (Piece p : nonfinished) {
-                if (p.getCurrentNode() == null) {
+            for (Piece p : allPieces) {
+                if (!p.isFinished() && p.getCurrentNode() == null) {
                     descs.add("새로운 말");
                     choices.add(p);
-                    break; // 딱 하나만
+                    break;                       // 하나만
                 }
             }
         }
 
-        // 보드 위에 있는 말들 추가
-        for (Piece p : nonfinished) {
+        // 1-B) 보드 위 말들
+        for (Piece p : allPieces) {
+            if (p.isFinished()) continue;
             BoardNode node = p.getCurrentNode();
-            if (node != null) {
-                descs.add("말 (" + node.getId() + ")");
-                choices.add(p);
+            if (node == null) continue;
+
+            if (isBakdo) {
+                boolean canBack = !node.equals(start) && p.getPathHistory().size() >= 2;
+                if (!canBack) continue;          // 뒤로 못 가면 제외
             }
+            descs.add("말 (" + node.getId() + ")");
+            choices.add(p);
         }
 
-        // 선택할 수 있는 말이 없는 경우
+        /* 2) 선택 가능한 말이 없다 → UI 메시지 & 턴 패스 */
         if (choices.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    isBakdo ? "출발한 말이 없습니다."
-                            : "이 플레이어는 말이 없습니다.",
-                    "선택 불가",
-                    JOptionPane.WARNING_MESSAGE);
-            game.nextTurn(); // 턴 넘김
+            String msg = isBakdo
+                    ? "시작지점에서 빽도를 사용하실 수 없습니다."
+                    : "이 플레이어는 이동 가능한 말이 없습니다.";
+            JOptionPane.showMessageDialog(this, msg, "선택 불가", JOptionPane.WARNING_MESSAGE);
+
+            // 턴 넘기기
+            game.nextTurn();
             boardPanel.repaint();
             return null;
         }
 
-        String result = null;
-        if (chosenResult == BAK_DO) {
-            result = "백도";
-        } else if (chosenResult == DO) {
-            result = "도";
-        } else if (chosenResult == GAE) {
-            result = "개";
-        } else if (chosenResult == GEOL) {
-            result = "걸";
-        } else if (chosenResult == YUT) {
-            result = "윷";
-        } else if (chosenResult == MO) {
-            result = "모";
-        }
-        String message = "이동할 " + player.getName() + "의 말을 선택하세요 (나온 결과: " + result + ")";
-        if (!isBakdo) {
-            long unstartedCount = nonfinished.stream().filter(p -> p.getCurrentNode() == null).count();
-            message += " - 미출발 " + unstartedCount + "개";
-        }
-
-        // 선택 UI
+        /* 3) 실제 선택 다이얼로그 */
         int ch = JOptionPane.showOptionDialog(
                 this,
-                message,
+                "이동할 말을 선택하세요 (" + player.getName() + ")",
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
@@ -446,6 +432,7 @@ public class SwingYutGameView extends JFrame {
                 descs.toArray(new String[0]),
                 descs.get(0)
         );
+
         return (ch < 0 || ch >= choices.size()) ? null : choices.get(ch);
     }
 
