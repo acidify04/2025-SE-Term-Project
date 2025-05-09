@@ -383,10 +383,16 @@ public class SwingYutGameView extends JFrame {
             return null;
         }
 
+        String message = "이동할 말을 선택하세요 (" + player.getName() + ")";
+        if (!isBakdo) {
+            long unstartedCount = nonfinished.stream().filter(p -> p.getCurrentNode() == null).count();
+            message += " - 미출발 " + unstartedCount + "개";
+        }
+
         // 선택 UI
         int ch = JOptionPane.showOptionDialog(
                 this,
-                "이동할 말을 선택하세요 (" + player.getName() + ")",
+                message,
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
