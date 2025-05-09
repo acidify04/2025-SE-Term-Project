@@ -3,10 +3,13 @@ package main.java.com.yutgame.controller;
 import main.java.com.yutgame.model.*;
 import main.java.com.yutgame.view.swing.SwingYutGameView;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static main.java.com.yutgame.model.YutThrowResult.*;
 
 public class YutGameController {
     private YutGame game;
@@ -64,5 +67,53 @@ public class YutGameController {
 
     public List<Player> getPlayers() {
         return game.getPlayers();
+    }
+
+    public boolean isGameOver() {
+        return game.isGameOver();
+    }
+
+    public Player getWinner() {
+        return game.getWinner();
+    }
+
+    // Game 관련 setter
+    public void throwYutManual(YutThrowResult manualResult) {
+        game.setLastThrowResult(manualResult);
+    }
+
+    public void startGame() {
+        game.startGame();
+    }
+
+    public YutThrowResult getRandomYut() {
+        return game.throwYutRandom();
+    }
+
+    public YutThrowResult getSetYut(int choice) {
+        YutThrowResult sel = switch (choice) { // TODO: model로 이동
+            case 0 -> YutThrowResult.BAK_DO;
+            case 1 -> YutThrowResult.DO;
+            case 2 -> GAE;
+            case 3 -> GEOL;
+            case 4 -> YUT;
+            case 5 -> YutThrowResult.MO;
+            default -> YutThrowResult.DO;
+        };
+        throwYutManual(sel);
+        return sel;
+    }
+
+    public void nextTurn() {
+        game.nextTurn();
+        view.repaint();
+    }
+
+    public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) {
+        game.movePiece(piece, targetNode, containsStart);
+    }
+
+    public void checkWin() {
+        game.checkWinCondition();
     }
 }

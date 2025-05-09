@@ -39,6 +39,10 @@ public class YutGame {
         this.board = board;
     }
 
+    public void setLastThrowResult(YutThrowResult lastThrowResult) {
+        this.lastThrowResult = lastThrowResult;
+    }
+
     /**
      * 게임 시작 시 초기화(필요하다면).
      */
@@ -77,10 +81,6 @@ public class YutGame {
     /**
      * 지정 윷 던지기 (테스트/디버그용).
      */
-    public void throwYutManual(YutThrowResult manualResult) {
-        this.lastThrowResult = manualResult;
-    }
-
     public YutThrowResult getLastThrowResult() {
         return lastThrowResult;
     }
