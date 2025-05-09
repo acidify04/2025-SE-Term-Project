@@ -20,54 +20,43 @@ public class SwingYutGameView extends JFrame {
 
     public SwingYutGameView() {
         // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
-        Integer playerCount = null;
-        while (playerCount == null || playerCount < 2 || playerCount > 4) {
-            String input = JOptionPane.showInputDialog(
-                    null,
-                    "플레이어 수를 입력하세요 (2~4):",
-                    "게임 설정",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-            if (input == null) {
-                System.exit(0);
-            }
-            try {
-                playerCount = Integer.parseInt(input);
-            } catch (NumberFormatException ex) {
-                playerCount = null;
-            }
-        }
-
-        Integer pieceCount = null;
-        while (pieceCount == null || pieceCount < 2 || pieceCount > 5) {
-            String input = JOptionPane.showInputDialog(
-                    null,
-                    "각 플레이어의 말 개수를 입력하세요 (2~5):",
-                    "게임 설정",
-                    JOptionPane.QUESTION_MESSAGE
-            );
-            if (input == null) {
-                System.exit(0);
-            }
-            try {
-                pieceCount = Integer.parseInt(input);
-            } catch (NumberFormatException ex) {
-                pieceCount = null;
-            }
-        }
-
+        String[] playerOptions = {"2인", "3인", "4인"};
+        String[] pieceOptions = {"2개", "3개", "4개", "5개"};
         String[] boardOptions = {"사각형", "오각형", "육각형"};
-        int boardChoice = JOptionPane.showOptionDialog(
+
+        JComboBox<String> playerCombo = new JComboBox<>(playerOptions);
+        JComboBox<String> pieceCombo = new JComboBox<>(pieceOptions);
+        JComboBox<String> boardCombo = new JComboBox<>(boardOptions);
+
+        JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
+        panel.add(new JLabel("플레이어 수:"));
+        panel.add(playerCombo);
+        panel.add(new JLabel("말 수:"));
+        panel.add(pieceCombo);
+        panel.add(new JLabel("보드 형태:"));
+        panel.add(boardCombo);
+
+        int result = JOptionPane.showConfirmDialog(
                 null,
-                "보드 형태를 선택하세요:",
-                "보드 설정",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                boardOptions,
-                boardOptions[0]
+                panel,
+                "기본 설정",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
         );
 
+        int playerCount = 0;
+        int pieceCount = 0;
+        int boardChoice = 0;
+
+        if (result == JOptionPane.OK_OPTION) {
+            playerCount = playerCombo.getSelectedIndex() + 2; // 2인부터 시작
+            pieceCount = pieceCombo.getSelectedIndex() + 2;   // 2개부터 시작
+            boardChoice = boardCombo.getSelectedIndex(); // 선택된 보드 타입
+
+            System.out.println("선택된 플레이어 수: " + playerCount);
+            System.out.println("선택된 말 수: " + pieceCount);
+            System.out.println("선택된 보드 형태: " + boardChoice);
+        }
 
         List<Player> players = new ArrayList<>();
         for (int i = 1; i <= playerCount; i++) {
