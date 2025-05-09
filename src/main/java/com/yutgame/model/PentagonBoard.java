@@ -230,9 +230,22 @@ public class PentagonBoard implements YutBoard {
     public List<BoardNode> getPossiblePreviousNodes(BoardNode target) {
         List<BoardNode> result = new ArrayList<>();
         if (target == null) return result;
+
+        // 1) pathHistory 우선
+        if (!target.getOccupantPieces().isEmpty()) {
+            Piece p = target.getOccupantPieces().get(0);
+            List<BoardNode> hist = p.getPathHistory();
+            if (hist.size() >= 2) {
+                result.add(hist.get(hist.size() - 2));
+                return result;          // 단일 결과
+            }
+        }
+
+        // 2) 그래프 역탐색(첫 번째만)
         for (BoardNode nd : nodes) {
             if (nd.getNextNodes().contains(target)) {
                 result.add(nd);
+                break;
             }
         }
         return result;
