@@ -428,12 +428,17 @@ public class SwingYutGameView extends JFrame {
             result = "윷";
         } else if (chosenResult == MO) {
             result = "모";
+          
+        String message = "이동할 " + player.getName() + "의 말을 선택하세요 (나온 결과: " + result + ")";
+        if (!isBakdo) {
+            long unstartedCount = nonfinished.stream().filter(p -> p.getCurrentNode() == null).count();
+            message += " - 미출발 " + unstartedCount + "개";
         }
 
         // 선택 UI
         int ch = JOptionPane.showOptionDialog(
                 this,
-                "이동할 " + player.getName() + "의 말을 선택하세요 (나온 결과: " + result + ")",
+                message,
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,

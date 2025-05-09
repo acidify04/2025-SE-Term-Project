@@ -211,13 +211,24 @@ public class HexagonBoard implements YutBoard {
 
     @Override
     public List<BoardNode> getPossiblePreviousNodes(BoardNode target) {
-        // 역방향 탐색
-        // 모든 노드를 순회하여 nextNodes에 target이 있으면 이전 노드로
         List<BoardNode> result = new ArrayList<>();
         if (target == null) return result;
+
+        /* 1) 말이 올라와 있으면, 그 말의 pathHistory 기준으로 직전 칸 하나만 리턴 */
+        if (!target.getOccupantPieces().isEmpty()) {
+            Piece p = target.getOccupantPieces().get(0);
+            List<BoardNode> hist = p.getPathHistory();
+            if (hist.size() >= 2) {
+                result.add(hist.get(hist.size() - 2));
+                return result;          // ★ 갈림길 선택 제거
+            }
+        }
+
+        /* 2) fallback – 그래프 역탐색 (첫 번째 후보만) */
         for (BoardNode nd : nodes) {
             if (nd.getNextNodes().contains(target)) {
                 result.add(nd);
+                break;                  // 첫 번째만
             }
         }
         return result;

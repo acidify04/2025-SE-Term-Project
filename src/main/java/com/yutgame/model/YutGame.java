@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Queue;
+import java.util.ArrayDeque;
+
 /**
  * 윷놀이 전체 로직(게임 시작, 말 이동, 윷 던지기, 턴/승리 관리 등)을 담당하는 클래스.
  * - 윷/모면 한 번 더
@@ -99,48 +104,75 @@ public class YutGame {
     }
 
     /**
-     * 말 이동 로직:
-     * - 사용자가 선택한 최종 목적지(targetNode)로 말을 이동시킨다.
-     * - 상대 말 잡기 시 extraTurnFlag = true
-     * - 아군 말 업기
-     * - FINISH 노드면 골인 처리 (주의: 현재 구조에서는 START_FINISH 통과 시 골인 처리 필요)
-     * - 이동 후 승리 여부 체크
+     * 말 이동 로직
+     * ------------------------------------------------------------
+     * ▸ 전진 계열(DO·GAE·GEOL·YUT·MO)
+     *   · prevNode→targetNode 최단 경로(BFS) 중간 칸을 모두 기록
+     *   · 실제 이동 후 잡기·업기·골인 처리
+     *
+     * ▸ 빽도(BAK_DO = -1칸)
+     *   · Piece.moveBackOneStep() 으로 히스토리 pop + 한 칸 뒤 이동
+     *   · 뒤로 간 자리에서 잡기 / 업기 / 골인 여부만 체크
+     *   · 추가 이동 경로 기록은 하지 않는다
      */
-    public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) { // start node를 지나가는지 확인용 파라미터 추가
-        if (piece == null || targetNode == null) {
-            System.err.println("movePiece Error: piece or targetNode is null.");
+    public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) {
+        if (piece == null) {
+            System.err.println("movePiece Error: piece is null.");
             return;
         }
-        // 현재 노드가 없으면 startNode로 세팅(출발 안 했을 경우)
-        BoardNode prevNode = piece.getCurrentNode();
-        if (prevNode == null) {
-            prevNode = board.getStartNode();
+
+        /* ─────────────────────── ❶ 빽도 전용 처리 ─────────────────────── */
+        if (lastThrowResult == YutThrowResult.BAK_DO) {
+            // ① 한 칸 뒤로 이동 (히스토리 pop + 디버그 출력 포함)
+            piece.moveBackOneStep();
+            BoardNode newNode = piece.getCurrentNode();
+
+            // ② 잡기 / 업기 / 골인 체크 (전진과 동일 로직 재사용)
+            boolean didCapture = captureIfNeeded(newNode, piece.getOwner());
+            groupIfSameTeam(newNode, piece.getOwner(), piece);
+            if (isGoal(piece, null, newNode, containsStart)) {   // prevNode 필요 X
+                piece.setFinished(true);
+                newNode.removePiece(piece);
+                if (piece.isGroup()) {
+                    finishGroup(piece, newNode);
+                }
+            }
+            if (didCapture) extraTurnFlag = true;
+
+            checkWinCondition();
+            System.out.println("[DEBUG] === movePiece end (BAK_DO) ===");
+            return;   // 빽도 처리 종료
         }
 
-        // 사용자가 View에서 선택한 targetNode가 null이면 이동 불가
+        /* ──────────────── ❷ 전진 계열(DO/GAE/GEOL/YUT/MO) ──────────────── */
         if (targetNode == null) {
-            System.err.println("Error: Target node is null in movePiece.");
+            System.err.println("movePiece Error: targetNode is null.");
             return;
         }
 
-        // 실제 이동 (사용자가 선택한 노드로 이동)
-        piece.moveTo(targetNode); // 변경: targetNode 사용
+        BoardNode prevNode = piece.getCurrentNode();
+        if (prevNode == null) prevNode = board.getStartNode();   // 미출발 말
 
+        // 1) prevNode → targetNode 최단 경로를 BFS 로 계산해 전부 기록
+        List<BoardNode> fullPath = findShortestPath(prevNode, targetNode);
+        for (BoardNode node : fullPath) {
+            piece.recordNode(node);   // 중복 자동 방지 + 실시간 디버그
+        }
 
-        // 그룹된 말도 함께 이동
+        // 2) 실제 이동
+        piece.moveTo(targetNode);
+
+        // 3) 그룹된 말 동시 이동
         List<Piece> movedGroup = new ArrayList<>();
         moveGroupWith(piece, targetNode, movedGroup);
 
-        // 잡기 (targetNode 기준으로)
+        // 4) 잡기 / 업기 / 골인
         boolean didCapture = false;
-        if (!isGoal(piece, prevNode, targetNode, containsStart)){
+        if (!isGoal(piece, prevNode, targetNode, containsStart)) {
             didCapture = captureIfNeeded(targetNode, piece.getOwner());
         }
-
-        // 업기 (targetNode 기준으로)
         groupIfSameTeam(targetNode, piece.getOwner(), piece);
 
-        // 골인 여부 체크
         if (isGoal(piece, prevNode, targetNode, containsStart)) {
             piece.setFinished(true);
             targetNode.removePiece(piece);
@@ -148,14 +180,45 @@ public class YutGame {
                 finishGroup(piece, targetNode);
             }
         }
+        if (didCapture) extraTurnFlag = true;
 
-        // 잡았다면 "한 번 더"
-        if (didCapture) {
-            this.extraTurnFlag = true;
+        checkWinCondition();
+
+        // ─ 디버그용 종결선
+        System.out.println("[DEBUG] === movePiece end ===");
+    }
+
+    /*─────────────────────────────────────────────────────────*/
+
+    /** BFS : 두 노드 사이의 최단(칸 수) 경로 반환 */
+    private List<BoardNode> findShortestPath(BoardNode start, BoardNode end) {
+        List<BoardNode> path = new ArrayList<>();
+        if (start == null || end == null) return path;
+
+        Map<BoardNode, BoardNode> parent = new HashMap<>();
+        Queue<BoardNode> q = new ArrayDeque<>();
+        q.add(start);
+        parent.put(start, null);
+
+        while (!q.isEmpty()) {
+            BoardNode cur = q.poll();
+            if (cur.equals(end)) break;
+            for (BoardNode nxt : cur.getNextNodes()) {
+                if (!parent.containsKey(nxt)) {
+                    parent.put(nxt, cur);
+                    q.add(nxt);
+                }
+            }
         }
 
-        // 이동 후 승리 체크
-        checkWinCondition();
+        if (!parent.containsKey(end)) {         // 경로 없음
+            path.add(start);
+            return path;
+        }
+        for (BoardNode n = end; n != null; n = parent.get(n)) {
+            path.add(0, n);                      // 역추적
+        }
+        return path;
     }
 
     private void finishGroup(Piece piece, BoardNode targetNode) {

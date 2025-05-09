@@ -167,25 +167,33 @@ public class PentagonBoard implements YutBoard {
         }
 
         // CENTER 특별 처리
-        if ("CENTER_PENTAGON".equals(node.getId()) && path.size() == 1) {
-            // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
-            BoardNode nextNode = findNodeById(node.getNextNodes(), "c2");
-            if (nextNode != null) {
-                dfsPaths(nextNode, steps - 1, path, results);
-                path.removeLast();
-                return;
+        if ("CENTER_PENTAGON".equals(node.getId()) && !path.isEmpty()) {
+            // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
+            BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
+
+            if (prevNode == null) {
+                // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 c2
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "c2");
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
+            } else if (prevNode != null) {
+                String prevId = prevNode.getId();
+                BoardNode nextNode = null;
+
+                // NE2에서 온 경우 SW1로 진행
+                if ("c4".equals(prevId) || "c6".equals(prevId) || "c8".equals(prevId)) {
+                    nextNode = findNodeById(node.getNextNodes(), "c10");
+                }
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
             }
         }
-
-        // steps == 0 도착 지점
-        if (steps == 0) {
-            if (!results.contains(node)) {
-                results.add(node);
-            }
-            path.removeLast();
-            return;
-        }
-
         // 갈림길 (nextNodes) 탐색
         for (BoardNode nxt : node.getNextNodes()) {
             dfsPaths(nxt, steps-1, path, results);
@@ -222,9 +230,22 @@ public class PentagonBoard implements YutBoard {
     public List<BoardNode> getPossiblePreviousNodes(BoardNode target) {
         List<BoardNode> result = new ArrayList<>();
         if (target == null) return result;
+
+        // 1) pathHistory 우선
+        if (!target.getOccupantPieces().isEmpty()) {
+            Piece p = target.getOccupantPieces().get(0);
+            List<BoardNode> hist = p.getPathHistory();
+            if (hist.size() >= 2) {
+                result.add(hist.get(hist.size() - 2));
+                return result;          // 단일 결과
+            }
+        }
+
+        // 2) 그래프 역탐색(첫 번째만)
         for (BoardNode nd : nodes) {
             if (nd.getNextNodes().contains(target)) {
                 result.add(nd);
+                break;
             }
         }
         return result;
