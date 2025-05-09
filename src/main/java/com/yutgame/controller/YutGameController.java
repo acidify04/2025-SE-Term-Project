@@ -12,9 +12,22 @@ public class YutGameController {
     private YutGame game;
     private SwingYutGameView view;
 
-    public YutGameController(YutGame game, SwingYutGameView view) {
+    public YutGameController() {
+        this.game = new YutGame();
+        this.view = new SwingYutGameView();
+        view.setController(this);
+    }
+
+    public YutGame getGame() {
+        return game;
+    }
+
+    public SwingYutGameView getView() {
+        return view;
+    }
+
+    public void setGame(YutGame game) {
         this.game = game;
-        this.view = view;
     }
 
     // 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환
@@ -38,5 +51,18 @@ public class YutGameController {
         }
 
         return results;
+    }
+
+    // Game 관련 getter
+    public Player getCurrentPlayer() {
+        return game.getCurrentPlayer();
+    }
+
+    public YutBoard getBoard() {
+        return game.getBoard();
+    }
+
+    public List<Player> getPlayers() {
+        return game.getPlayers();
     }
 }

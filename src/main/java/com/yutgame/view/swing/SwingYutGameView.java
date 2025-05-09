@@ -64,8 +64,9 @@ public class SwingYutGameView extends JFrame {
 
         // 윷 게임 생성 (컨트롤러 이용)
         try {
-            this.game = YutGameFactory.createGame(playerCount, pieceCount, boardChoice);
-            this.controller = new YutGameController(this.game, this);
+//            this.game = YutGameFactory.createGame(playerCount, pieceCount, boardChoice);
+            this.controller = new YutGameController();
+            controller.setGame(YutGameFactory.createGame(playerCount, pieceCount, boardChoice));
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
             System.exit(0);
@@ -87,7 +88,7 @@ public class SwingYutGameView extends JFrame {
 
         add(topPanel, BorderLayout.NORTH);
 
-        boardPanel = new BoardPanel(game);
+        boardPanel = new BoardPanel();
         add(boardPanel, BorderLayout.CENTER);
 
         initButtonListeners();
