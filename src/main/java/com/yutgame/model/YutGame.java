@@ -121,9 +121,28 @@ public class YutGame {
             return;
         }
 
-        /* ─────────────────────── ❶ 빽도 전용 처리 ─────────────────────── */
+        /* ──────────────────── ❶ 빽도(BAK_DO) 전용 처리 ──────────────────── */
         if (lastThrowResult == YutThrowResult.BAK_DO) {
-            // ① 한 칸 뒤로 이동 (히스토리 pop + 디버그 출력 포함)
+
+            /* 1) 현재 말이 START_NODE에 있거나 뒤로 갈 히스토리가 없으면 → 오류 메시지 */
+            if (!canMoveBack(piece)) {
+                System.out.println("시작지점에서 빽도를 사용하실 수 없습니다.");
+
+                // 1-A) 같은 팀 말 중 빽도 가능한 말이 하나라도 있으면: 턴 유지(선택 다시)
+                boolean hasOther = false;
+                for (Piece p : piece.getOwner().getPieces()) {
+                    if (p != piece && canMoveBack(p)) { hasOther = true; break; }
+                }
+
+                // 1-B) 아무 말도 빽도 불가 → 턴 자동 패스
+                if (!hasOther) {
+                    extraTurnFlag = false;      // 추가 턴 무효
+                    nextTurn();                 // 즉시 다음 플레이어에게 넘김
+                }
+                return;                         // 더 이상 처리하지 않음
+            }
+
+            /* 2) 정상적인 빽도 처리 */
             piece.moveBackOneStep();
             BoardNode newNode = piece.getCurrentNode();
 
@@ -380,5 +399,12 @@ public class YutGame {
         }
     }
 
+    /** 현재 Piece가 빽도로 한 칸 뒤로 갈 수 있는지 검사 */
+    private boolean canMoveBack(Piece p) {
+        return p != null
+                && p.getCurrentNode() != null
+                && !p.getCurrentNode().equals(board.getStartNode())   // 이미 START면 불가
+                && p.getPathHistory().size() >= 2;                    // 직전 노드가 존재해야 함
+    }
 
 }
