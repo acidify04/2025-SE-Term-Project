@@ -124,7 +124,7 @@ public class HexagonBoard implements YutBoard {
     public BoardNode getStartNode() {
         // START_NODE ID를 가진 노드를 찾아 반환
         return nodes.stream()
-                .filter(n -> "C1".equals(n.getId()))
+                .filter(n -> "START_NODE".equals(n.getId()))
                 .findFirst()
                 .orElse(null);
     }
