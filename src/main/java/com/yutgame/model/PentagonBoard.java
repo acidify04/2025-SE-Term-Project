@@ -57,7 +57,7 @@ public class PentagonBoard implements YutBoard {
         BoardNode D4 = new BoardNode("D4", 395, 518);
 
         // 지름길 노드
-        BoardNode center = new BoardNode("CENTER", 300, 300);
+        BoardNode center = new BoardNode("CENTER_PENTAGON", 300, 300);
 
         // start to center
         BoardNode c1 = new BoardNode("c1", 400, 437);
@@ -167,26 +167,23 @@ public class PentagonBoard implements YutBoard {
         }
 
         // CENTER 특별 처리
-        if ("CENTER".equals(node.getId()) && !path.isEmpty()) {
-            // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
-            BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
-
-            if (prevNode != null) {
-                String prevId = prevNode.getId();
-                BoardNode nextNode = null;
-
-                // c4/c6/c8에서 온 경우 c10으로 진행
-                if ("c4".equals(prevId) || "c6".equals(prevId) || "c8".equals(prevId)) {
-                    nextNode = findNodeById(node.getNextNodes(), "c10");
-                }
-
-                // 특별 경로가 결정된 경우
-                if (nextNode != null) {
-                    dfsPaths(nextNode, steps-1, path, results);
-                    path.removeLast();
-                    return; // 다른 경로는 탐색하지 않음
-                }
+        if ("CENTER_PENTAGON".equals(node.getId()) && path.size() == 1) {
+            // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
+            BoardNode nextNode = findNodeById(node.getNextNodes(), "c2");
+            if (nextNode != null) {
+                dfsPaths(nextNode, steps - 1, path, results);
+                path.removeLast();
+                return;
             }
+        }
+
+        // steps == 0 도착 지점
+        if (steps == 0) {
+            if (!results.contains(node)) {
+                results.add(node);
+            }
+            path.removeLast();
+            return;
         }
 
         // 갈림길 (nextNodes) 탐색
