@@ -213,6 +213,15 @@ public class SwingYutGameView extends JFrame {
                         options[0]
                 );
 
+                YutThrowResult chosen = results.get(choice);
+                // results > 1이고 빽도가 포함되어 있을 때 처리
+                boolean allUnstarted = currentPlayer.getPieces().stream()
+                        .allMatch(p -> p.getCurrentNode() == null);
+                if (chosen == YutThrowResult.BAK_DO && allUnstarted) {
+                    JOptionPane.showMessageDialog(this, "출발하지 않은 상태에서는 빽도를 선택할 수 없습니다.");
+                    continue; // 다시 선택창을 띄움
+                }
+
                 // ✨ 사용자가 선택 안 하고 닫았을 때 예외 방지
                 if (choice == -1) {
                     JOptionPane.showMessageDialog(this, "이동 선택이 취소되었습니다. 턴을 넘깁니다.");
@@ -222,7 +231,6 @@ public class SwingYutGameView extends JFrame {
                 YutThrowResult chosenResult = results.remove(choice);
                 moveNode(currentPlayer, chosenResult);
             }
-
 
         } else moveNode(currentPlayer, results.get(0));
 
@@ -234,7 +242,7 @@ public class SwingYutGameView extends JFrame {
     }
 
     private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
-        Piece selected = selectPiece(currentPlayer);
+        Piece selected = selectPiece(currentPlayer, chosenResult);
         if (selected != null) {
             int steps = switch (chosenResult) {
                 case BAK_DO -> -1;
@@ -253,7 +261,6 @@ public class SwingYutGameView extends JFrame {
                 BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동", -1);
                 if (dest != null) game.movePiece(selected, dest, containsStart);
             } else {
-                System.out.println("\n\n new move");
                 List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
                 List<BoardNode> path = game.getBoard().getPaths();
                 List<List<BoardNode>> paths = splitPath(path, steps);
@@ -275,8 +282,6 @@ public class SwingYutGameView extends JFrame {
                 }
 
                 BoardNode dest;
-                System.out.println("cans size: " + cans.size());
-                System.out.println("isCrossroad: " + isCrossroad(curr));
 
                 if (isCrossroad(curr) && cans.size() > 1) {
                     dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
@@ -338,7 +343,7 @@ public class SwingYutGameView extends JFrame {
     }
 
 
-    private Piece selectPiece(Player player) {
+    private Piece selectPiece(Player player, YutThrowResult chosenResult) {
         List<Piece> allPieces = player.getPieces();
 
         // 완주한 말 제외
@@ -350,7 +355,7 @@ public class SwingYutGameView extends JFrame {
         }
 
         // 현재 윷 결과가 빽도인지 확인
-        boolean isBakdo = game.getLastThrowResult() == YutThrowResult.BAK_DO;
+        boolean isBakdo = chosenResult == YutThrowResult.BAK_DO;
 
         // 빽도일 경우 출발한 말만 필터링
         List<Piece> selectable = new ArrayList<>();
@@ -363,7 +368,7 @@ public class SwingYutGameView extends JFrame {
         // 선택할 수 있는 말이 없는 경우
         if (selectable.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    isBakdo ? "출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다."
+                    isBakdo ? "출발한 말 없이 없습니다. "
                             : "이 플레이어는 말이 없습니다.",
                     "선택 불가",
                     JOptionPane.WARNING_MESSAGE);
