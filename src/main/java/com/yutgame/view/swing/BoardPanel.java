@@ -35,7 +35,17 @@ public class BoardPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         // 배경
-        g.setColor(Color.WHITE);
+        if (game.getCurrentPlayer().getName().equals("P1")) {
+            g.setColor(Color.decode("#C5EEF9"));
+        } else if (game.getCurrentPlayer().getName().equals("P2")) {
+            g.setColor(Color.decode("#F5CEEA"));
+        } else if (game.getCurrentPlayer().getName().equals("P3")) {
+            g.setColor(Color.decode("#CEF5CC"));
+        } else if (game.getCurrentPlayer().getName().equals("P4")) {
+            g.setColor(Color.decode("#F6F0D2"));
+        } else {
+            g.setColor(Color.white);
+        }
         g.fillRect(0, 0, getWidth(), getHeight());
 
         // 상단에 점수판
