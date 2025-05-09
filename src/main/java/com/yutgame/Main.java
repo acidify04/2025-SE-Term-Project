@@ -1,5 +1,7 @@
 package main.java.com.yutgame;
 
+
+
 import main.java.com.yutgame.view.swing.SwingYutGameView;
 
 import javax.swing.SwingUtilities;
