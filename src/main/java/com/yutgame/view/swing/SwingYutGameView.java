@@ -394,6 +394,17 @@ public class SwingYutGameView extends JFrame {
             }
         }
 
+        for (int i = 0; i < allPieces.size(); i++) {
+            for (int j = i + 1; j < allPieces.size(); j++) {
+                BoardNode curr = allPieces.get(i).getCurrentNode();
+                if (curr != null && allPieces.get(j).getCurrentNode() != null) {
+                    if (allPieces.get(j).getCurrentNode().equals(curr)) {
+                        allPieces.remove(nonfinished.get(j));
+                    }
+                }
+            }
+        }
+
         // 1-B) 보드 위 말들
         for (Piece p : allPieces) {
             if (p.isFinished()) continue;
