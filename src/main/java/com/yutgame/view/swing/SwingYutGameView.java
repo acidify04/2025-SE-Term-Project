@@ -1,5 +1,7 @@
 package main.java.com.yutgame.view.swing;
 
+import main.java.com.yutgame.controller.YutGameController;
+import main.java.com.yutgame.controller.YutGameFactory;
 import main.java.com.yutgame.model.*;
 import main.java.com.yutgame.view.swing.BoardPanel;
 
@@ -18,6 +20,7 @@ public class SwingYutGameView extends JFrame {
     private JButton manualThrowButton;
     private boolean isRandomThrow = false;
     private boolean containsStart = false;
+    private YutGameController controller;
 
     public SwingYutGameView() {
         // --- 게임 세팅 다이얼로그 (이전 YutGame.initializeGame 역할) ---
@@ -59,28 +62,15 @@ public class SwingYutGameView extends JFrame {
             System.out.println("선택된 보드 형태: " + boardChoice);
         }
 
-        List<Player> players = new ArrayList<>();
-        for (int i = 1; i <= playerCount; i++) {
-            Player player = new Player("P" + i, new ArrayList<>());
-            for (int j = 0; j < pieceCount; j++) {
-                Piece piece = new Piece(player);
-                player.getPieces().add(piece);
-            }
-            players.add(player);
+        // 윷 게임 생성 (컨트롤러 이용)
+        try {
+            this.game = YutGameFactory.createGame(playerCount, pieceCount, boardChoice);
+            this.controller = new YutGameController(this.game, this);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+            System.exit(0);
         }
 
-        YutBoard board;
-        switch (boardChoice) {
-            case 0 -> board = SquareBoard.createStandardBoard();
-            case 1 -> board = PentagonBoard.createPentagonBoard(); // 오각형
-            case 2 -> board = HexagonBoard.createHexagonBoard();   // 육각형
-            default -> {
-                JOptionPane.showMessageDialog(null, "보드 선택이 취소되었습니다.");
-                System.exit(0);
-                return;
-            }
-        }
-        this.game = new YutGame(players, board);
         // ----------------------------------------------------------
 
         // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
@@ -121,27 +111,20 @@ public class SwingYutGameView extends JFrame {
     }
 
     /**
-     * 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환
+     * 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환 (컨트롤러 이용)
      */
     private void processAllThrows(YutThrowResult firstResult) {
-        List<YutThrowResult> results = new ArrayList<>();
-        showResult(firstResult);
-        results.add(firstResult);
-        // 윷, 모 또는 잡기까지 연속 던지기
-        while (game.getLastThrowResult() == YUT
-                || game.getLastThrowResult() == YutThrowResult.MO) {
-            JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.");
-            YutThrowResult nextResult;
-            if (isRandomThrow) {
-                nextResult = game.throwYutRandom();
-            } else {
-                nextResult = getSetYutResult();
-            }
-            showResult(nextResult);
-            results.add(nextResult);
-        }
-        applyThrowSelections(results);
+        List<YutThrowResult> results = controller.collectThrowResults(
+                firstResult,
+                isRandomThrow,
+                () -> getSetYutResult(),
+                this::showResult,
+                () -> JOptionPane.showMessageDialog(this, "윷을 한 번 더 던지세요.")
+        );
+
+        applyThrowSelections(results); // 아직은 뷰에 남겨둠
     }
+
 
     private void showResult(YutThrowResult result) {
         if (result == BAK_DO) {
@@ -478,5 +461,9 @@ public class SwingYutGameView extends JFrame {
                 opts[0]
         );
         return (ch < 0 || ch >= cands.size()) ? null : cands.get(ch);
+    }
+
+    public void setController(YutGameController controller) {
+        this.controller = controller;
     }
 }
