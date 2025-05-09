@@ -42,13 +42,7 @@ public class YutGameController {
         resultDisplayer.accept(firstResult);
         results.add(firstResult);
 
-        while (game.getLastThrowResult() == YutThrowResult.YUT
-                || game.getLastThrowResult() == YutThrowResult.MO) {
-            promptExtraThrow.run();
-            YutThrowResult next = isRandom ? game.throwYutRandom() : manualThrowProvider.get();
-            resultDisplayer.accept(next);
-            results.add(next);
-        }
+        game.collectResults(firstResult, isRandom, manualThrowProvider, resultDisplayer, promptExtraThrow, results);
 
         return results;
     }

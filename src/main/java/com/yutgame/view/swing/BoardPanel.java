@@ -121,35 +121,4 @@ public class BoardPanel extends JPanel {
             idx++;
         }
     }
-
-    private void drawRemainPieces(Graphics g, BoardNode node) {
-        int idx = 0;
-        for (Piece p : node.getOccupantPieces()) {
-            
-            if (p.isFinished()){
-                int x = node.getX(), y = node.getY();
-                g.setColor(Color.BLACK);
-                g.drawOval(x, y, NODE_SIZE, NODE_SIZE);
-            }else{
-
-            }
-            // 캡처되거나 완주된 말은 그리지 않음
-            if (p.isFinished() || p.getCurrentNode() == null) continue;
-
-            // 플레이어 번호에 따라 다른 이미지 사용 (switch문 적용)
-            String playerName = p.getOwner().getName();
-            Image img = switch (playerName) {
-                case "P1" -> pieceIconP1;
-                case "P2" -> pieceIconP2;
-                case "P3" -> pieceIconP3;
-                case "P4" -> pieceIconP4;
-                default -> pieceIconP1; // 기본값
-            };
-
-            int px = node.getX() + 5 + (idx * 10);
-            int py = node.getY() + 5 + (idx * 10);
-            g.drawImage(img, px, py, PIECE_SIZE, PIECE_SIZE, this);
-            idx++;
-        }
-    }
 }
