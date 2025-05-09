@@ -155,13 +155,14 @@ public class HexagonBoard implements YutBoard {
             path.removeLast();
             return;
         }
+
         // CENTER 특별 처리
         if ("CH".equals(node.getId()) && !path.isEmpty()) {
             // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
             BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
 
             if (prevNode == null) {
-                // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
+                // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 c2
                 BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
                 if (nextNode != null) {
                     dfsPaths(nextNode, steps - 1, path, results);
@@ -172,7 +173,6 @@ public class HexagonBoard implements YutBoard {
                 String prevId = prevNode.getId();
                 BoardNode nextNode = null;
 
-                //
                 if ("b1".equals(prevId) || "c1".equals(prevId) || "d1".equals(prevId) || "e1".equals(prevId)) {
                     nextNode = findNodeById(node.getNextNodes(), "f1");
                 }
@@ -183,12 +183,10 @@ public class HexagonBoard implements YutBoard {
                 }
             }
         }
-
-        // 일반 nextNodes 탐색
+        // 갈림길 (nextNodes) 탐색
         for (BoardNode nxt : node.getNextNodes()) {
-            dfsPaths(nxt, steps - 1, path, results);
+            dfsPaths(nxt, steps-1, path, results);
         }
-
         path.removeLast();
     }
 
