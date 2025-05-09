@@ -250,19 +250,36 @@ public class SwingYutGameView extends JFrame {
 
             if (steps < 0) {
                 List<BoardNode> prevs = game.getBoard().getPossiblePreviousNodes(curr);
-                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동");
+                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동", -1);
                 if (dest != null) game.movePiece(selected, dest, containsStart);
             } else {
                 System.out.println("\n\n new move");
                 List<BoardNode> cans = game.getBoard().getPossibleNextNodes(curr, steps);
                 List<BoardNode> path = game.getBoard().getPaths();
+                List<List<BoardNode>> paths = splitPath(path, steps);
+
+                for (List<BoardNode> boardNodes : paths) {
+                    for (BoardNode boardNode : boardNodes) {
+                        System.out.println(boardNode.getId());
+                    }
+                    System.out.println();
+                }
+
+                int canFinishIndex = -1; // 완주 가능한 버튼 index
+                for (int i = 0; i < paths.size(); i++) {
+                    for (BoardNode boardNode : path) {
+                        if (boardNode.getId().equals("START_NODE")) {
+                            canFinishIndex = i;
+                        }
+                    }
+                }
 
                 BoardNode dest;
                 System.out.println("cans size: " + cans.size());
                 System.out.println("isCrossroad: " + isCrossroad(curr));
 
                 if (isCrossroad(curr) && cans.size() > 1) {
-                    dest = chooseDestination(cans, "갈림길 선택");
+                    dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
                 } else {
                     dest = cans.isEmpty() ? null : cans.get(0);
                 }
@@ -310,6 +327,16 @@ public class SwingYutGameView extends JFrame {
         String id = node.getId();
         return "CENTER".equals(id) || "A".equals(id) || "B".equals(id) || "C".equals(id) || "D".equals(id) || "E".equals(id);
     }
+
+    private List<List<BoardNode>> splitPath(List<BoardNode> path, int step) {
+        List<List<BoardNode>> chunks = new ArrayList<>();
+        for (int i = 0; i < path.size(); i += step) {
+            int end = Math.min(i + step, path.size());
+            chunks.add(new ArrayList<>(path.subList(i, end)));
+        }
+        return chunks;
+    }
+
 
     private Piece selectPiece(Player player) {
         List<Piece> allPieces = player.getPieces();
@@ -367,9 +394,12 @@ public class SwingYutGameView extends JFrame {
     }
 
 
-    private BoardNode chooseDestination(List<BoardNode> cands, String title) {
+    private BoardNode chooseDestination(List<BoardNode> cands, String title, int index) {
         if (cands.size() == 1) return cands.get(0);
         String[] opts = cands.stream().map(BoardNode::getId).toArray(String[]::new);
+        if (index >= 0) {
+            opts[index] = "Finish";
+        }
         int ch = JOptionPane.showOptionDialog(
                 this,
                 "이동할 노드를 선택하세요",
