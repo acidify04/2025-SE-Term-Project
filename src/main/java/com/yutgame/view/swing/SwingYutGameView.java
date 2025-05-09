@@ -84,7 +84,7 @@ public class SwingYutGameView extends JFrame {
 
         // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
         setTitle("Swing Yut Game");
-        setSize(700, 700);
+        setSize(700, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
