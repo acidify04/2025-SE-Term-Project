@@ -132,7 +132,10 @@ public class YutGame {
         moveGroupWith(piece, targetNode, movedGroup);
 
         // 잡기 (targetNode 기준으로)
-        boolean didCapture = captureIfNeeded(targetNode, piece.getOwner());
+        boolean didCapture = false;
+        if (!isGoal(piece, prevNode, targetNode, containsStart)){
+            didCapture = captureIfNeeded(targetNode, piece.getOwner());
+        }
 
         // 업기 (targetNode 기준으로)
         groupIfSameTeam(targetNode, piece.getOwner(), piece);
