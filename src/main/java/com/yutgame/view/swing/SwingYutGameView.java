@@ -124,7 +124,7 @@ public class SwingYutGameView extends JFrame {
      */
     private void processAllThrows(YutThrowResult firstResult) {
         List<YutThrowResult> results = new ArrayList<>();
-        JOptionPane.showMessageDialog(this, "던진 윷 결과: " + firstResult);
+        showResult(firstResult);
         results.add(firstResult);
         // 윷, 모 또는 잡기까지 연속 던지기
         while (game.getLastThrowResult() == YUT
@@ -136,10 +136,26 @@ public class SwingYutGameView extends JFrame {
             } else {
                 nextResult = getSetYutResult();
             }
-            JOptionPane.showMessageDialog(this, "던진 윷 결과: " + nextResult);
+            showResult(nextResult);
             results.add(nextResult);
         }
         applyThrowSelections(results);
+    }
+
+    private void showResult(YutThrowResult result) {
+        if (result == BAK_DO) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 백도");
+        } else if (result == DO) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 도");
+        } else if (result == GAE) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 개");
+        } else if (result == GEOL) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 걸");
+        } else if (result == YUT) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 윷");
+        } else if (result == MO) {
+            JOptionPane.showMessageDialog(this, "던진 윷 결과: 모");
+        }
     }
 
     private YutThrowResult getSetYutResult() {
@@ -187,9 +203,25 @@ public class SwingYutGameView extends JFrame {
 
         if (results.size() > 1) {
             while (!results.isEmpty()) {
-                String[] options = results.stream()
-                        .map(Enum::name)
-                        .toArray(String[]::new);
+//                String[] options = results.stream()
+//                        .map(Enum::name)
+//                        .toArray(String[]::new);
+                String[] options = new String[results.size()];
+                for (int i = 0; i < results.size(); i++) {
+                    if (results.get(i) == BAK_DO) {
+                        options[i] = "백도";
+                    } else if (results.get(i) == DO) {
+                        options[i] = "도";
+                    } else if (results.get(i) == GAE) {
+                        options[i] = "개";
+                    } else if (results.get(i) == GEOL) {
+                        options[i] = "걸";
+                    } else if (results.get(i) == YUT) {
+                        options[i] = "윷";
+                    } else if (results.get(i) == MO) {
+                        options[i] = "모";
+                    }
+                }
 
                 int choice = JOptionPane.showOptionDialog(
                         this,
