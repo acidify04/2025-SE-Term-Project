@@ -32,7 +32,7 @@ public class HexagonBoard implements YutBoard {
         BoardNode C4 = new BoardNode("C", 550, 300);
         BoardNode C5 = new BoardNode("D", 425, 50);
         BoardNode C6 = new BoardNode("E", 175, 50);
-        BoardNode CENTER = new BoardNode("CENTER_HEXAGON", center, center);
+        BoardNode CENTER = new BoardNode("CH", center, center);
 
         // 노드 이름 설정 및 생성 (테두리)
         BoardNode n1 = new BoardNode("1", 75, 350);
@@ -158,7 +158,7 @@ public class HexagonBoard implements YutBoard {
 
 // ✅ CENTER 먼저
         // ✅ "CENTER에서 출발"은 무조건 a1로만 나간다
-        if ("CENTER_HEXAGON".equals(node.getId()) && path.size() == 1) {
+        if ("CH".equals(node.getId()) && path.size() == 1) {
             // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
             BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
             if (nextNode != null) {

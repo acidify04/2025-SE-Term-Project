@@ -57,7 +57,7 @@ public class PentagonBoard implements YutBoard {
         BoardNode D4 = new BoardNode("D4", 395, 518);
 
         // 지름길 노드
-        BoardNode center = new BoardNode("CENTER_PENTAGON", 300, 300);
+        BoardNode center = new BoardNode("CP", 300, 300);
 
         // start to center
         BoardNode c1 = new BoardNode("c1", 400, 437);
@@ -167,7 +167,7 @@ public class PentagonBoard implements YutBoard {
         }
 
         // CENTER 특별 처리
-        if ("CENTER_PENTAGON".equals(node.getId()) && !path.isEmpty()) {
+        if ("CP".equals(node.getId()) && !path.isEmpty()) {
             // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
             BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
 
