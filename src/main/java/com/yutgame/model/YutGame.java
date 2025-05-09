@@ -22,15 +22,21 @@ public class YutGame {
 
     private Random random;
 
-    public YutGame(List<Player> players, YutBoard board) {
-        this.players = players;
-        this.board = board;
+    public YutGame() {
         this.currentPlayerIndex = 0;
         this.isGameOver = false;
         this.winner = null;
         this.lastThrowResult = null;
         this.extraTurnFlag = false;
         this.random = new Random();
+    }
+
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+    }
+
+    public void setBoard(YutBoard board) {
+        this.board = board;
     }
 
     /**

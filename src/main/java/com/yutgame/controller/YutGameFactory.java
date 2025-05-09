@@ -25,6 +25,10 @@ public class YutGameFactory {
             default -> throw new IllegalArgumentException("보드 선택이 잘못되었습니다.");
         };
 
-        return new YutGame(players, board);
+        YutGame game = new YutGame();
+        game.setBoard(board);
+        game.setPlayers(players);
+
+        return game;
     }
 }
