@@ -415,10 +415,25 @@ public class SwingYutGameView extends JFrame {
             return null;
         }
 
+        String result = null;
+        if (chosenResult == BAK_DO) {
+            result = "백도";
+        } else if (chosenResult == DO) {
+            result = "도";
+        } else if (chosenResult == GAE) {
+            result = "개";
+        } else if (chosenResult == GEOL) {
+            result = "걸";
+        } else if (chosenResult == YUT) {
+            result = "윷";
+        } else if (chosenResult == MO) {
+            result = "모";
+        }
+
         // 선택 UI
         int ch = JOptionPane.showOptionDialog(
                 this,
-                "이동할 말을 선택하세요 (" + player.getName() + ")",
+                "이동할 " + player.getName() + "의 말을 선택하세요 (나온 결과: " + result + ")",
                 "말 선택",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
