@@ -1,13 +1,6 @@
 package main.java.com.yutgame.model;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Queue;
-import java.util.ArrayDeque;
+import java.util.*;
 
 /**
  * 윷놀이 전체 로직(게임 시작, 말 이동, 윷 던지기, 턴/승리 관리 등)을 담당하는 클래스.
@@ -143,7 +136,7 @@ public class YutGame {
             }
 
             /* 2) 정상적인 빽도 처리 */
-            piece.moveBackOneStep();
+            moveGroupBackOneStep(piece);
             BoardNode newNode = piece.getCurrentNode();
 
             // ② 잡기 / 업기 / 골인 체크 (전진과 동일 로직 재사용)
@@ -407,4 +400,20 @@ public class YutGame {
                 && p.getPathHistory().size() >= 2;                    // 직전 노드가 존재해야 함
     }
 
+
+    // 업힌 말 백도
+    private void moveGroupBackOneStep(Piece piece) {
+        Set<Piece> visited = new HashSet<>();
+        moveGroupBackOneStepHelper(piece, visited);
+    }
+
+    private void moveGroupBackOneStepHelper(Piece piece, Set<Piece> visited) {
+        if (visited.contains(piece)) return; // 무한 루프 방지
+        visited.add(piece);
+
+        piece.moveBackOneStep();
+        for (Piece grouped : piece.getGroupedPieces()) {
+            moveGroupBackOneStepHelper(grouped, visited);
+        }
+    }
 }
