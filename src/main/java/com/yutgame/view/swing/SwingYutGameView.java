@@ -399,7 +399,7 @@ public class SwingYutGameView extends JFrame {
                 BoardNode curr = allPieces.get(i).getCurrentNode();
                 if (curr != null && allPieces.get(j).getCurrentNode() != null) {
                     if (allPieces.get(j).getCurrentNode().equals(curr)) {
-                        allPieces.remove(nonfinished.get(j));
+                        allPieces.remove(allPieces.get(j));
                     }
                 }
             }
