@@ -1,6 +1,8 @@
 package main.java.com.yutgame.model;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 윷놀이 전체 로직(게임 시작, 말 이동, 윷 던지기, 턴/승리 관리 등)을 담당하는 클래스.
@@ -421,5 +423,23 @@ public class YutGame {
         for (Piece grouped : piece.getGroupedPieces()) {
             moveGroupBackOneStepHelper(grouped, visited);
         }
+    }
+
+    public List<YutThrowResult> collectResults(
+            YutThrowResult firstResult,
+            boolean isRandom,
+            Supplier<YutThrowResult> manualThrowProvider,
+            Consumer<YutThrowResult> resultDisplayer,
+            Runnable promptExtraThrow,
+            List<YutThrowResult> results
+    ) {
+        while (this.getLastThrowResult() == YutThrowResult.YUT
+                || this.getLastThrowResult() == YutThrowResult.MO) {
+            promptExtraThrow.run();
+            YutThrowResult next = isRandom ? this.throwYutRandom() : manualThrowProvider.get();
+            resultDisplayer.accept(next);
+            results.add(next);
+        }
+        return results;
     }
 }
