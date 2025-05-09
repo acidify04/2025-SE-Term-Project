@@ -155,26 +155,33 @@ public class HexagonBoard implements YutBoard {
             path.removeLast();
             return;
         }
+        // CENTER 특별 처리
+        if ("CH".equals(node.getId()) && !path.isEmpty()) {
+            // 이전 노드가 무엇인지 확인 (path의 마지막 바로 이전 노드)
+            BoardNode prevNode = path.size() > 1 ? path.get(path.size() - 2) : null;
 
-// ✅ CENTER 먼저
-        // ✅ "CENTER에서 출발"은 무조건 a1로만 나간다
-        if ("CH".equals(node.getId()) && path.size() == 1) {
-            // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
-            BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
-            if (nextNode != null) {
-                dfsPaths(nextNode, steps - 1, path, results);
-                path.removeLast();
-                return;
-            }
-        }
+            if (prevNode == null) {
+                // 처음 시작이 CENTER이고, 이동 시작이라면 → 무조건 a1
+                BoardNode nextNode = findNodeById(node.getNextNodes(), "a1");
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
+            } else if (prevNode != null) {
+                String prevId = prevNode.getId();
+                BoardNode nextNode = null;
 
-        // steps == 0 도착 지점
-        if (steps == 0) {
-            if (!results.contains(node)) {
-                results.add(node);
+                //
+                if ("b1".equals(prevId) || "c1".equals(prevId) || "d1".equals(prevId) || "e1".equals(prevId)) {
+                    nextNode = findNodeById(node.getNextNodes(), "f1");
+                }
+                if (nextNode != null) {
+                    dfsPaths(nextNode, steps - 1, path, results);
+                    path.removeLast();
+                    return;
+                }
             }
-            path.removeLast();
-            return;
         }
 
         // 일반 nextNodes 탐색
