@@ -236,6 +236,7 @@ public class SwingYutGameView extends JFrame {
 
         if (game.isGameOver()) {
             JOptionPane.showMessageDialog(this, "승리자: " + game.getWinner().getName());
+            System.exit(0);
         } else {
             game.nextTurn();
         }
