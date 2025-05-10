@@ -260,6 +260,7 @@ public class SwingYutGameView extends JFrame {
 
                 YutThrowResult chosenResult = results.remove(choice);
                 moveNode(currentPlayer, chosenResult);
+
                 if (controller.isGameOver()) {
                     break;
                 }
@@ -356,6 +357,10 @@ public class SwingYutGameView extends JFrame {
                     controller.getBoard().pathClear();
 
                     controller.movePiece(selected, dest, containsStart);
+                    // movePiece 직후, 잡기 여부 확인
+                    if (controller.hasExtraTurn()) {
+                        JOptionPane.showMessageDialog(this, "상대 말을 잡았으니 이후 던질 기회가 추가됩니다.");
+                    }
                 }
             }
             boardPanel.repaint();
