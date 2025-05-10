@@ -151,10 +151,13 @@ public class YutGame {
             boolean didCapture = captureIfNeeded(newNode, piece.getOwner());
             groupIfSameTeam(newNode, piece.getOwner(), piece);
             if (isGoal(piece, null, newNode, containsStart)) {   // prevNode 필요 X
-                piece.setFinished(true);
-                newNode.removePiece(piece);
-                if (piece.isGroup()) {
-                    finishGroup(piece, newNode);
+                if (!piece.getGroupedPieces().isEmpty()) {
+                    // 그룹이면 그룹 전체 완주 처리
+                    finishGroup(piece, targetNode);
+                } else {
+                    // 단독 말이면 여기서 처리
+                    piece.setFinished(true);
+                    targetNode.removePiece(piece);
                 }
             }
             if (didCapture) extraTurnFlag = true;
@@ -194,10 +197,13 @@ public class YutGame {
         groupIfSameTeam(targetNode, piece.getOwner(), piece);
 
         if (isGoal(piece, prevNode, targetNode, containsStart)) {
-            piece.setFinished(true);
-            targetNode.removePiece(piece);
-            if (piece.isGroup()) {
+            if (!piece.getGroupedPieces().isEmpty()) {
+                // 그룹이면 그룹 전체 완주 처리
                 finishGroup(piece, targetNode);
+            } else {
+                // 단독 말이면 여기서 처리
+                piece.setFinished(true);
+                targetNode.removePiece(piece);
             }
         }
         if (didCapture) extraTurnFlag = true;
