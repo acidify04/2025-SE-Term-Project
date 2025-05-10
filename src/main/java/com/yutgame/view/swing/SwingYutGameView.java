@@ -59,6 +59,9 @@ public class SwingYutGameView extends JFrame {
             System.out.println("선택된 플레이어 수: " + playerCount);
             System.out.println("선택된 말 수: " + pieceCount);
             System.out.println("선택된 보드 형태: " + boardChoice);
+        } else {
+            // 취소 또는 X 누른 경우
+            System.exit(0);  // 프로그램 종료
         }
 
         // 윷 게임 생성 (컨트롤러 이용)
