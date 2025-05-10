@@ -162,6 +162,15 @@ public class Piece {
             p.isGrouped = true;
         }
 
+        // ✅ 직접 확인용 출력 추가
+        System.out.println("groupWith: " + this + " + " + other + " → size=" + this.groupedPieces.size());
+
+        // this.piece 기준으로 그룹이 비어있는 경우 대비하여 안전장치
+        if (this.groupedPieces.isEmpty() && union.size() > 1) {
+            this.groupedPieces.addAll(union);
+            this.groupedPieces.remove(this); // 자기 자신 제외
+        }
+
         // 모든 말이 동일한 pathHistory를 공유하도록 설정
         List<BoardNode> sharedHistory = new ArrayList<>(this.pathHistory);
         for (Piece p : union) {
