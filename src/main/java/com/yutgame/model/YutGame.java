@@ -426,13 +426,31 @@ public class YutGame {
             Runnable promptExtraThrow,
             List<YutThrowResult> results
     ) {
-        while (this.getLastThrowResult() == YutThrowResult.YUT
-                || this.getLastThrowResult() == YutThrowResult.MO) {
+        int extraThrows = 0;
+
+        // 첫 결과 포함
+        if (firstResult == YutThrowResult.YUT || firstResult == YutThrowResult.MO)
+            extraThrows++;
+        if (extraTurnFlag)  // 잡았으면 true임
+            extraThrows++;
+
+        extraTurnFlag = false;  // 초기화 중요
+
+        while (extraThrows-- > 0) {
             promptExtraThrow.run();
-            YutThrowResult next = isRandom ? this.throwYutRandom() : manualThrowProvider.get();
+            YutThrowResult next = isRandom ? throwYutRandom() : manualThrowProvider.get();
             resultDisplayer.accept(next);
             results.add(next);
+
+            // 던진 결과가 또 윷/모거나 잡았으면 추가
+            if (next == YutThrowResult.YUT || next == YutThrowResult.MO)
+                extraThrows++;
+            if (extraTurnFlag)
+                extraThrows++;
+
+            extraTurnFlag = false;  // 한 번만 적용되도록
         }
+
         return results;
     }
 }
