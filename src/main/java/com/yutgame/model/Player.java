@@ -52,4 +52,18 @@ public class Player {
     public long getFinishedCount() {
         return pieces.stream().filter(Piece::isFinished).count();
     }
+
+    // 디버깅 용 함수: 사용자 모든 말의 히스토리를 보여줌
+    public void printAllPathHistories() {
+        System.out.println("[" + getName() + "] 모든 말의 경로 기록:");
+        int i = 1;
+        for (Piece p : pieces) {
+            System.out.print("말 " + i + ": ");
+            for (BoardNode node : p.getPathHistory()) {
+                System.out.print(node.getId() + " ");
+            }
+            System.out.println();
+            i++;
+        }
+    }
 }
