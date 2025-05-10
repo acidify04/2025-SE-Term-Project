@@ -150,6 +150,9 @@ public class YutGameController {
         view.setVisible(true);
     }
 
-
+    // 말을 잡았는지 여부
+    public boolean hasExtraTurn() {
+        return game.hasExtraTurnFlag();
+    }
 
 }
