@@ -184,11 +184,9 @@ public class HexagonBoard implements YutBoard {
             }
         }
 
-        // 일반 nextNodes 탐색
         for (BoardNode nxt : node.getNextNodes()) {
-            dfsPaths(nxt, steps - 1, path, results);
+            dfsPaths(nxt, steps-1, path, results);
         }
-
         path.removeLast();
     }
 
