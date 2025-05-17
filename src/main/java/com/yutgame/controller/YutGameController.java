@@ -1,10 +1,9 @@
 package main.java.com.yutgame.controller;
 
+import main.java.com.yutgame.dto.PieceDecisionResult;
 import main.java.com.yutgame.model.*;
-import main.java.com.yutgame.view.swing.BoardPanel;
 import main.java.com.yutgame.view.swing.SwingYutGameView;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -15,12 +14,25 @@ import static main.java.com.yutgame.model.YutThrowResult.*;
 public class YutGameController {
     private YutGame game;
     private SwingYutGameView view;
+    private boolean containsStartNode;
+
 
     public YutGameController() {
         this.game = new YutGame();
         this.view = new SwingYutGameView();
+        this.containsStartNode = false;
         view.setController(this);
     }
+
+    public boolean getContainsStartNode() {
+        return containsStartNode;
+    }
+
+    public boolean checkContainsStartNode(List<BoardNode> path) {
+        this.containsStartNode = path.stream()
+                .anyMatch(node -> "START_NODE".equals(node.getId()));
+    }
+
 
     public YutGame getGame() {
         return game;
@@ -154,5 +166,192 @@ public class YutGameController {
     public boolean hasExtraTurn() {
         return game.hasExtraTurnFlag();
     }
+
+    /**
+     * 게임 시작 전, 말이 보드에 놓여있지 않은지 확인
+     * player가 아직 출발은 안했는지 확인
+     * @param : player: 확인할 플레이어
+     * @return true: 출발 안함, false: 출발함
+     * */
+    public boolean getNotStarted(Player player) {
+        return player.getPieces().stream()
+                .allMatch(p -> p.getCurrentNode() == null);
+    }
+
+    /**
+     * 영어를 한글로 변환
+     * @param : results: 변환할 결과 리스트
+     * @return : 한글로 바뀐 결과 String 리스트
+     * */
+    public String[] getChoiceLetters(List<YutThrowResult> results) {
+        String[] options = new String[results.size()];
+        for (int i = 0; i < results.size(); i++) {
+            if (results.get(i) == BAK_DO) {
+                options[i] = "백도";
+            } else if (results.get(i) == DO) {
+                options[i] = "도";
+            } else if (results.get(i) == GAE) {
+                options[i] = "개";
+            } else if (results.get(i) == GEOL) {
+                options[i] = "걸";
+            } else if (results.get(i) == YUT) {
+                options[i] = "윷";
+            } else if (results.get(i) == MO) {
+                options[i] = "모";
+            }
+        }
+        return options;
+    }
+
+    // 어떤 말 움직인지에 대한 선택지 스트링 리스트를 반환
+    public PieceDecisionResult getPieceDecisions(Player player, YutThrowResult chosenResult) {
+        List<Piece> allPieces = player.getPieces(); //
+        boolean isBakdo = checkBaekdo(chosenResult);
+        BoardNode start = this.getBoard().getStartNode();
+
+        // 1) 선택지 리스트
+        List<Piece>  choices = new ArrayList<>();
+        List<String> decisions = new ArrayList<>();
+
+        // 1-A) 미출발 말 1개(빽도 제외)
+        if (!isBakdo) {
+            for (Piece p : allPieces) {
+                if (!p.isFinished() && p.getCurrentNode() == null) {
+                    decisions.add("새로운 말");
+                    choices.add(p);
+                    break;                       // 하나만
+                }
+            }
+        }
+
+        // 미출발 말 2개(빽도 제외)
+        for (int i = 0; i < allPieces.size(); i++) {
+            for (int j = i + 1; j < allPieces.size(); j++) {
+                BoardNode curr = allPieces.get(i).getCurrentNode();
+                if (curr != null && allPieces.get(j).getCurrentNode() != null) {
+                    if (allPieces.get(j).getCurrentNode().equals(curr)) {
+                        allPieces.remove(allPieces.get(j));
+                    }
+                }
+            }
+        }
+
+        // 1-B) 보드 위 말들
+        for (Piece p : allPieces) {
+            if (p.isFinished()) continue;
+            BoardNode node = p.getCurrentNode();
+            if (node == null) continue;
+
+            if (isBakdo) {
+                boolean canBack = !node.equals(start) && p.getPathHistory().size() >= 2;
+                if (!canBack) continue;          // 뒤로 못 가면 제외
+            }
+            decisions.add("말 (" + node.getId() + ")");
+            choices.add(p);
+        }
+
+
+        return new PieceDecisionResult(decisions, choices);
+
+    }
+
+    public boolean checkBaekdo(YutThrowResult chosenResult) {
+        return chosenResult == YutThrowResult.BAK_DO;
+    }
+
+    public boolean allPiecesFinished(Player player) {
+        return player.allPiecesFinished();
+    }
+
+    public void moveNode(Piece selected, YutThrowResult chosenResult) {
+        int steps = switch (chosenResult) {
+            case BAK_DO -> -1;
+            case DO      -> 1;
+            case GAE     -> 2;
+            case GEOL    -> 3;
+            case YUT     -> 4;
+            case MO      -> 5;
+        };
+
+        BoardNode curr = selected.getCurrentNode();
+        if (curr == null) curr = this.getBoard().getStartNode();
+
+        if (steps < 0) {
+            List<BoardNode> prevs = this.getBoard().getPossiblePreviousNodes(curr);
+            BoardNode dest = prevs.size() == 1 ? prevs.getFirst() : chooseDestination(prevs, "빽도 이동", -1);
+            if (dest != null) this.movePiece(selected, dest, containsStartNode);
+        } else {
+            List<BoardNode> cans = this.getBoard().getPossibleNextNodes(curr, steps);
+            List<BoardNode> path = this.getBoard().getPaths();
+            List<List<BoardNode>> paths = this.splitPath(path, steps);
+
+            for (List<BoardNode> boardNodes : paths) {
+                for (BoardNode boardNode : boardNodes) {
+                    System.out.println(boardNode.getId());
+                }
+                System.out.println();
+            }
+
+            int canFinishIndex = -1; // 완주 가능한 버튼 index
+            for (int i = 0; i < paths.size(); i++) {
+                for (BoardNode boardNode : path) {
+                    if (boardNode.getId().equals("START_NODE")) {
+                        canFinishIndex = i;
+                    }
+                }
+            }
+
+            BoardNode dest;
+
+            if (isCrossroad(curr) && cans.size() > 1) {
+                dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
+            } else {
+                dest = cans.isEmpty() ? null : cans.get(0);
+            }
+            if (dest != null) {
+                // 완주 처리 관련 로직 : path에 start가 있는가
+                String destId = dest.getId();  // 선택된 목적지 노드의 ID
+                int destIndex = -1;
+
+                for (int i = 0; i < path.size(); i++) {
+                    if (destId.equals(path.get(i).getId())) {
+                        destIndex = i;
+                        break;
+                    }
+                }
+                if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
+                    List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
+                    path.clear();
+                    path.addAll(trimmed);
+                } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
+                    List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
+                    path.clear();
+                    path.addAll(trimmed);
+                } else {
+                    System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
+                }
+
+                containsStartNode = checkContainsStartNode(path);
+                this.getBoard().pathClear();
+
+                this.movePiece(selected, dest, containsStartNode);
+            }
+        }
+    }
+
+    private List<List<BoardNode>> splitPath(List<BoardNode> path, int step) {
+        List<List<BoardNode>> chunks = new ArrayList<>();
+        for (int i = 0; i < path.size(); i += step) {
+            int end = Math.min(i + step, path.size());
+            chunks.add(new ArrayList<>(path.subList(i, end)));
+        }
+        return chunks;
+    }
+
+    public boolean isCrossroad(BoardNode node) {
+        String id = node.getId();
+        return "CENTER".equals(id) || "A".equals(id) || "B".equals(id) || "C".equals(id) || "D".equals(id) || "E".equals(id);
+    }
+
 
 }
