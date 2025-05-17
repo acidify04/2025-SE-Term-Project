@@ -15,23 +15,12 @@ import static main.java.com.yutgame.model.YutThrowResult.*;
 public class YutGameController {
     private YutGame game;
     private SwingYutGameView view;
-    private boolean containsStartNode;
 
 
     public YutGameController() {
         this.game = new YutGame();
         this.view = new SwingYutGameView();
-        this.containsStartNode = false;
         view.setController(this);
-    }
-
-    public boolean getContainsStartNode() {
-        return containsStartNode;
-    }
-
-    public boolean checkContainsStartNode(List<BoardNode> path) {
-        return this.containsStartNode = path.stream()
-                .anyMatch(node -> "START_NODE".equals(node.getId()));
     }
 
 
@@ -88,10 +77,6 @@ public class YutGameController {
     // Game 관련 setter
     public void throwYutManual(YutThrowResult manualResult) {
         game.setLastThrowResult(manualResult);
-    }
-
-    public void startGame() {
-        game.startGame();
     }
 
     public YutThrowResult getRandomYut() {
@@ -163,11 +148,6 @@ public class YutGameController {
         view.setVisible(true);
     }
 
-    // 말을 잡았는지 여부
-    public boolean hasExtraTurn() {
-        return game.hasExtraTurnFlag();
-    }
-
     /**
      * 게임 시작 전, 말이 보드에 놓여있지 않은지 확인
      * player가 아직 출발은 안했는지 확인
@@ -210,11 +190,13 @@ public class YutGameController {
         boolean isBakdo = checkBaekdo(chosenResult);
         BoardNode start = this.getBoard().getStartNode();
 
-        // 1) 선택지 리스트
+        // 선택지 리스트(말 객체)
         List<Piece>  choices = new ArrayList<>();
+
+        // 선택지 리스트(스트링)
         List<String> decisions = new ArrayList<>();
 
-        // 1-A) 미출발 말 1개(빽도 제외)
+        // 미출발 말 1개(빽도 제외)
         if (!isBakdo) {
             for (Piece p : allPieces) {
                 if (!p.isFinished() && p.getCurrentNode() == null) {
@@ -237,7 +219,7 @@ public class YutGameController {
             }
         }
 
-        // 1-B) 보드 위 말들
+        // 보드 위 말들
         for (Piece p : allPieces) {
             if (p.isFinished()) continue;
             BoardNode node = p.getCurrentNode();
@@ -251,9 +233,7 @@ public class YutGameController {
             choices.add(p);
         }
 
-
         return new PieceDecisionResult(decisions, choices);
-
     }
 
     public boolean checkBaekdo(YutThrowResult chosenResult) {
@@ -275,38 +255,13 @@ public class YutGameController {
     }
 
     public boolean isCrossroad(BoardNode node) {
-        String id = node.getId();
-        return "CENTER".equals(id) || "A".equals(id) || "B".equals(id) || "C".equals(id) || "D".equals(id) || "E".equals(id);
+        return game.isCrossroad(node);
     }
 
 
     // 완주 처리 관련 로직
     public void isFinished(Piece selected, BoardNode dest, List<BoardNode> path, int steps) {
-        String destId = dest.getId();  // 선택된 목적지 노드의 ID
-        int destIndex = -1;
-
-        for (int i = 0; i < path.size(); i++) {
-            if (destId.equals(path.get(i).getId())) {
-                destIndex = i;
-                break;
-            }
-        }
-        if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
-            List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
-            path.clear();
-            path.addAll(trimmed);
-        } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
-            List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
-            path.clear();
-            path.addAll(trimmed);
-        } else {
-            System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
-        }
-
-        this.containsStartNode = checkContainsStartNode(path);
-        this.getBoard().pathClear();
-
-        this.movePiece(selected, dest, this.getContainsStartNode());
+        game.isFinished(selected, dest, path, steps);
     }
 
     public int getSteps(YutThrowResult chosenResult) {
@@ -323,14 +278,10 @@ public class YutGameController {
     }
 
     public int checkCanFinishIndex(List<List<BoardNode>> paths, List<BoardNode> path) {
-        int canFinishIndex = -1; // 완주 가능한 버튼 index
-        for (int i = 0; i < paths.size(); i++) {
-            for (BoardNode boardNode : path) {
-                if (boardNode.getId().equals("START_NODE")) {
-                    canFinishIndex = i;
-                }
-            }
-        }
-        return canFinishIndex;
+        return game.checkCanFinishIndex(paths, path);
+    }
+
+    public boolean getContainsStartNode() {
+        return game.getContainStartNode();
     }
 }

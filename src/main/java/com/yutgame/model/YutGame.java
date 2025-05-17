@@ -22,6 +22,8 @@ public class YutGame {
 
     private boolean extraTurnFlag;     // "잡으면 한 번 더" 발생 플래그
 
+    private boolean containsStartNode;
+
     private Random random;
 
     public YutGame() {
@@ -452,5 +454,61 @@ public class YutGame {
         }
 
         return results;
+    }
+
+    public boolean isCrossroad(BoardNode node) {
+        String id = node.getId();
+        return "CENTER".equals(id) || "A".equals(id) || "B".equals(id) || "C".equals(id) || "D".equals(id) || "E".equals(id);
+    }
+
+
+    // 완주 처리 관련 로직
+    public void isFinished(Piece selected, BoardNode dest, List<BoardNode> path, int steps) {
+        String destId = dest.getId();  // 선택된 목적지 노드의 ID
+        int destIndex = -1;
+
+        for (int i = 0; i < path.size(); i++) {
+            if (destId.equals(path.get(i).getId())) {
+                destIndex = i;
+                break;
+            }
+        }
+        if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
+            List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
+            path.clear();
+            path.addAll(trimmed);
+        } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
+            List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
+            path.clear();
+            path.addAll(trimmed);
+        } else {
+            System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
+        }
+
+        this.containsStartNode = checkContainsStartNode(path);
+        this.getBoard().pathClear();
+
+        this.movePiece(selected, dest, containsStartNode);
+    }
+
+    public boolean checkContainsStartNode(List<BoardNode> path) {
+        return this.containsStartNode = path.stream()
+                .anyMatch(node -> "START_NODE".equals(node.getId()));
+    }
+
+    public boolean getContainStartNode() {
+        return this.containsStartNode;
+    }
+
+    public int checkCanFinishIndex(List<List<BoardNode>> paths, List<BoardNode> path) {
+        int canFinishIndex = -1; // 완주 가능한 버튼 index
+        for (int i = 0; i < paths.size(); i++) {
+            for (BoardNode boardNode : path) {
+                if (boardNode.getId().equals("START_NODE")) {
+                    canFinishIndex = i;
+                }
+            }
+        }
+        return canFinishIndex;
     }
 }
