@@ -321,4 +321,16 @@ public class YutGameController {
 
         return steps;
     }
+
+    public int checkCanFinishIndex(List<List<BoardNode>> paths, List<BoardNode> path) {
+        int canFinishIndex = -1; // 완주 가능한 버튼 index
+        for (int i = 0; i < paths.size(); i++) {
+            for (BoardNode boardNode : path) {
+                if (boardNode.getId().equals("START_NODE")) {
+                    canFinishIndex = i;
+                }
+            }
+        }
+        return canFinishIndex;
+    }
 }

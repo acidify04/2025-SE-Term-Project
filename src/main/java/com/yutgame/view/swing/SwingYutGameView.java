@@ -6,7 +6,6 @@ import main.java.com.yutgame.model.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 
 import static main.java.com.yutgame.model.YutThrowResult.*;
@@ -62,17 +61,6 @@ public class SwingYutGameView extends JFrame {
             System.exit(0);  // 프로그램 종료
         }
 
-        // 윷 게임 생성 (컨트롤러 이용)
-        try {
-//            this.game = YutGameFactory.createGame(playerCount, pieceCount, boardChoice);
-//            this.controller = new YutGameController();
-            //controller.setGame(YutGameController.createGame(playerCount, pieceCount, boardChoice));
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
-            System.exit(0);
-        }
-        // ----------------------------------------------------------
-
         // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
         setTitle("Swing Yut Game");
         setSize(700, 800);
@@ -86,14 +74,7 @@ public class SwingYutGameView extends JFrame {
         topPanel.add(manualThrowButton);
 
         add(topPanel, BorderLayout.NORTH);
-
-//        boardPanel = new BoardPanel();
-        // add(boardPanel, BorderLayout.CENTER);
-
         initButtonListeners();
-
-        //controller.startGame();
-        // ----------------------------------------------------------
     }
 
     public int getPlayerCount() {
@@ -259,7 +240,6 @@ public class SwingYutGameView extends JFrame {
 
     private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
         Piece selected = selectPiece(currentPlayer, chosenResult);
-        // TODO: controller.moveNode(selected, chosenResult);
 
         if (selected != null) {
             int steps = controller.getSteps(chosenResult);
@@ -276,17 +256,10 @@ public class SwingYutGameView extends JFrame {
                 List<BoardNode> path = controller.getBoard().getPaths();
                 List<List<BoardNode>> paths = controller.splitPath(path, steps);
 
-                int canFinishIndex = -1; // 완주 가능한 버튼 index
-                for (int i = 0; i < paths.size(); i++) {
-                    for (BoardNode boardNode : path) {
-                        if (boardNode.getId().equals("START_NODE")) {
-                            canFinishIndex = i;
-                        }
-                    }
-                }
+
+                int canFinishIndex = controller.checkCanFinishIndex(paths, path);
 
                 BoardNode dest;
-
                 if (controller.isCrossroad(curr) && cans.size() > 1) {
                     dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
                 } else {
@@ -299,25 +272,6 @@ public class SwingYutGameView extends JFrame {
             }
             boardPanel.repaint();
         }
-    }
-
-
-
-    public void showMessage(String message) {
-        JOptionPane.showMessageDialog(this, message);
-    }
-
-    public void showGameOver(String winnerName) {
-        JOptionPane.showMessageDialog(this, "승리자: " + winnerName);
-        System.exit(0);
-    }
-
-    public Piece requestPieceSelection(Player player, YutThrowResult result) {
-        return selectPiece(player, result);
-    }
-
-    public BoardNode requestDestinationSelection(List<BoardNode> options, String title, int canFinishIndex) {
-        return chooseDestination(options, title, canFinishIndex);
     }
 
 
@@ -407,8 +361,4 @@ public class SwingYutGameView extends JFrame {
         revalidate();
         repaint();
     }
-
-
-    //
-
 }
