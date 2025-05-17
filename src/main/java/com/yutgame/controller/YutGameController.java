@@ -309,7 +309,7 @@ public class YutGameController {
         this.movePiece(selected, dest, this.getContainsStartNode());
     }
 
-    private int getSteps(YutThrowResult chosenResult) {
+    public int getSteps(YutThrowResult chosenResult) {
         int steps = switch (chosenResult) {
             case BAK_DO -> -1;
             case DO      -> 1;

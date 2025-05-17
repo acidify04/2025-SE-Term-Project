@@ -262,14 +262,7 @@ public class SwingYutGameView extends JFrame {
         // TODO: controller.moveNode(selected, chosenResult);
 
         if (selected != null) {
-            int steps = switch (chosenResult) {
-                case BAK_DO -> -1;
-                case DO      -> 1;
-                case GAE     -> 2;
-                case GEOL    -> 3;
-                case YUT     -> 4;
-                case MO      -> 5;
-            };
+            int steps = controller.getSteps(chosenResult);
 
             BoardNode curr = selected.getCurrentNode();
             if (curr == null) curr = controller.getBoard().getStartNode();
