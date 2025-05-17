@@ -4,6 +4,7 @@ import main.java.com.yutgame.dto.PieceDecisionResult;
 import main.java.com.yutgame.model.*;
 import main.java.com.yutgame.view.swing.SwingYutGameView;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -29,7 +30,7 @@ public class YutGameController {
     }
 
     public boolean checkContainsStartNode(List<BoardNode> path) {
-        this.containsStartNode = path.stream()
+        return this.containsStartNode = path.stream()
                 .anyMatch(node -> "START_NODE".equals(node.getId()));
     }
 
@@ -263,83 +264,8 @@ public class YutGameController {
         return player.allPiecesFinished();
     }
 
-    public void moveNode(Piece selected, YutThrowResult chosenResult) {
-        int steps = switch (chosenResult) {
-            case BAK_DO -> -1;
-            case DO      -> 1;
-            case GAE     -> 2;
-            case GEOL    -> 3;
-            case YUT     -> 4;
-            case MO      -> 5;
-        };
 
-        BoardNode curr = selected.getCurrentNode();
-        if (curr == null) curr = this.getBoard().getStartNode();
-
-        if (steps < 0) {
-            List<BoardNode> prevs = this.getBoard().getPossiblePreviousNodes(curr);
-            BoardNode dest = prevs.size() == 1 ? prevs.getFirst() : chooseDestination(prevs, "빽도 이동", -1);
-            if (dest != null) this.movePiece(selected, dest, containsStartNode);
-        } else {
-            List<BoardNode> cans = this.getBoard().getPossibleNextNodes(curr, steps);
-            List<BoardNode> path = this.getBoard().getPaths();
-            List<List<BoardNode>> paths = this.splitPath(path, steps);
-
-            for (List<BoardNode> boardNodes : paths) {
-                for (BoardNode boardNode : boardNodes) {
-                    System.out.println(boardNode.getId());
-                }
-                System.out.println();
-            }
-
-            int canFinishIndex = -1; // 완주 가능한 버튼 index
-            for (int i = 0; i < paths.size(); i++) {
-                for (BoardNode boardNode : path) {
-                    if (boardNode.getId().equals("START_NODE")) {
-                        canFinishIndex = i;
-                    }
-                }
-            }
-
-            BoardNode dest;
-
-            if (isCrossroad(curr) && cans.size() > 1) {
-                dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
-            } else {
-                dest = cans.isEmpty() ? null : cans.get(0);
-            }
-            if (dest != null) {
-                // 완주 처리 관련 로직 : path에 start가 있는가
-                String destId = dest.getId();  // 선택된 목적지 노드의 ID
-                int destIndex = -1;
-
-                for (int i = 0; i < path.size(); i++) {
-                    if (destId.equals(path.get(i).getId())) {
-                        destIndex = i;
-                        break;
-                    }
-                }
-                if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
-                    List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
-                    path.clear();
-                    path.addAll(trimmed);
-                } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
-                    List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
-                    path.clear();
-                    path.addAll(trimmed);
-                } else {
-                    System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
-                }
-
-                containsStartNode = checkContainsStartNode(path);
-                this.getBoard().pathClear();
-
-                this.movePiece(selected, dest, containsStartNode);
-            }
-        }
-    }
-
-    private List<List<BoardNode>> splitPath(List<BoardNode> path, int step) {
+    public List<List<BoardNode>> splitPath(List<BoardNode> path, int step) {
         List<List<BoardNode>> chunks = new ArrayList<>();
         for (int i = 0; i < path.size(); i += step) {
             int end = Math.min(i + step, path.size());
@@ -354,4 +280,45 @@ public class YutGameController {
     }
 
 
+    // 완주 처리 관련 로직
+    public void isFinished(Piece selected, BoardNode dest, List<BoardNode> path, int steps) {
+        String destId = dest.getId();  // 선택된 목적지 노드의 ID
+        int destIndex = -1;
+
+        for (int i = 0; i < path.size(); i++) {
+            if (destId.equals(path.get(i).getId())) {
+                destIndex = i;
+                break;
+            }
+        }
+        if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
+            List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
+            path.clear();
+            path.addAll(trimmed);
+        } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
+            List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
+            path.clear();
+            path.addAll(trimmed);
+        } else {
+            System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
+        }
+
+        this.containsStartNode = checkContainsStartNode(path);
+        this.getBoard().pathClear();
+
+        this.movePiece(selected, dest, this.getContainsStartNode());
+    }
+
+    private int getSteps(YutThrowResult chosenResult) {
+        int steps = switch (chosenResult) {
+            case BAK_DO -> -1;
+            case DO      -> 1;
+            case GAE     -> 2;
+            case GEOL    -> 3;
+            case YUT     -> 4;
+            case MO      -> 5;
+        };
+
+        return steps;
+    }
 }

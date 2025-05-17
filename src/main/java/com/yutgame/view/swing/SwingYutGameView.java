@@ -281,14 +281,7 @@ public class SwingYutGameView extends JFrame {
             } else {
                 List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
                 List<BoardNode> path = controller.getBoard().getPaths();
-                List<List<BoardNode>> paths = splitPath(path, steps);
-
-                for (List<BoardNode> boardNodes : paths) {
-                    for (BoardNode boardNode : boardNodes) {
-                        System.out.println(boardNode.getId());
-                    }
-                    System.out.println();
-                }
+                List<List<BoardNode>> paths = controller.splitPath(path, steps);
 
                 int canFinishIndex = -1; // 완주 가능한 버튼 index
                 for (int i = 0; i < paths.size(); i++) {
@@ -308,37 +301,7 @@ public class SwingYutGameView extends JFrame {
                 }
                 if (dest != null) {
                     // 완주 처리 관련 로직 : path에 start가 있는가
-                    String destId = dest.getId();  // 선택된 목적지 노드의 ID
-                    int destIndex = -1;
-
-                    for (int i = 0; i < path.size(); i++) {
-                        if (destId.equals(path.get(i).getId())) {
-                            destIndex = i;
-                            break;
-                        }
-                    }
-                    if (destIndex >= 0 && destIndex == steps -1) {   // 갈림길 1 선택
-                        List<BoardNode> trimmed = new ArrayList<>(path.subList(0, steps));
-                        path.clear();
-                        path.addAll(trimmed);
-                    } else if (destIndex >= 0 && destIndex > steps -1) {  // 이외의 갈림길 선택
-                        List<BoardNode> trimmed = new ArrayList<>(path.subList(destIndex - steps + 1, destIndex + 1));
-                        path.clear();
-                        path.addAll(trimmed);
-                    } else {
-                        System.err.println("dest가 path에 없거나 steps 길이가 부족함.");
-                    }
-                    // 콘솔 출력용 추가
-                    /*
-                    * System.out.println("노드 탐색 결과 (선택 길)");
-                    for (BoardNode cur : path) {
-                        System.out.println(cur.getId());
-                    }*/
-                    containsStart = path.stream()
-                            .anyMatch(node -> "START_NODE".equals(node.getId()));
-                    controller.getBoard().pathClear();
-
-                    controller.movePiece(selected, dest, controller.getContainsStartNode());
+                    controller.isFinished(selected, dest, path, steps);
                 }
             }
             boardPanel.repaint();
