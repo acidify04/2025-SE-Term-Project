@@ -1,0 +1,158 @@
+package main.java.com.yutgame.controller;
+
+import main.java.com.yutgame.model.*;
+import main.java.com.yutgame.view.swing.BoardPanel;
+import main.java.com.yutgame.view.swing.SwingYutGameView;
+
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static main.java.com.yutgame.model.YutThrowResult.*;
+
+public class YutGameController {
+    private YutGame game;
+    private SwingYutGameView view;
+
+    public YutGameController() {
+        this.game = new YutGame();
+        this.view = new SwingYutGameView();
+        view.setController(this);
+    }
+
+    public YutGame getGame() {
+        return game;
+    }
+
+    public SwingYutGameView getView() {
+        return view;
+    }
+
+    public void setGame(YutGame game) {
+        this.game = game;
+    }
+
+    // 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환
+    public List<YutThrowResult> collectThrowResults(
+            YutThrowResult firstResult,
+            boolean isRandom,
+            Supplier<YutThrowResult> manualThrowProvider,
+            Consumer<YutThrowResult> resultDisplayer,
+            Runnable promptExtraThrow
+    ) {
+        List<YutThrowResult> results = new ArrayList<>();
+        resultDisplayer.accept(firstResult);
+        results.add(firstResult);
+
+        game.collectResults(firstResult, isRandom, manualThrowProvider, resultDisplayer, promptExtraThrow, results);
+
+        return results;
+    }
+
+    // Game 관련 getter
+    public Player getCurrentPlayer() {
+        return game.getCurrentPlayer();
+    }
+
+    public YutBoard getBoard() {
+        return game.getBoard();
+    }
+
+    public List<Player> getPlayers() {
+        return game.getPlayers();
+    }
+
+    public boolean isGameOver() {
+        return game.isGameOver();
+    }
+
+    public Player getWinner() {
+        return game.getWinner();
+    }
+
+    // Game 관련 setter
+    public void throwYutManual(YutThrowResult manualResult) {
+        game.setLastThrowResult(manualResult);
+    }
+
+    public void startGame() {
+        game.startGame();
+    }
+
+    public YutThrowResult getRandomYut() {
+        return game.throwYutRandom();
+    }
+
+    public YutThrowResult getSetYut(int choice) {
+        YutThrowResult sel = switch (choice) { // TODO: model로 이동
+            case 0 -> YutThrowResult.BAK_DO;
+            case 1 -> YutThrowResult.DO;
+            case 2 -> GAE;
+            case 3 -> GEOL;
+            case 4 -> YUT;
+            case 5 -> YutThrowResult.MO;
+            default -> YutThrowResult.DO;
+        };
+        throwYutManual(sel);
+        return sel;
+    }
+
+    public void nextTurn() {
+        game.nextTurn();
+        view.repaint();
+    }
+
+    public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) {
+        game.movePiece(piece, targetNode, containsStart);
+    }
+
+    public void checkWin() {
+        game.checkWinCondition();
+    }
+
+    public static YutGame createGame(int playerCount, int pieceCount, int boardChoice) {
+        List<Player> players = new ArrayList<>();
+        for (int i = 1; i <= playerCount; i++) {
+            Player player = new Player("P" + i, new ArrayList<>());
+            for (int j = 0; j < pieceCount; j++) {
+                Piece piece = new Piece(player);
+                player.getPieces().add(piece);
+            }
+            players.add(player);
+        }
+
+        YutBoard board = switch (boardChoice) {
+            case 0 -> SquareBoard.createStandardBoard();
+            case 1 -> PentagonBoard.createPentagonBoard();
+            case 2 -> HexagonBoard.createHexagonBoard();
+            default -> throw new IllegalArgumentException("보드 선택이 잘못되었습니다.");
+        };
+
+        YutGame game = new YutGame();
+        game.setBoard(board);
+        game.setPlayers(players);
+
+        return game;
+    }
+
+    // YutGameController.java
+    public void initializeGame() {
+        view.setController(this);
+
+        int players = view.getPlayerCount();
+        int pieces  = view.getPieceCount();
+        int board   = view.getBoardChoice();
+
+        this.game = createGame(players, pieces, board);
+        view.initBoardPanel(); // → boardPanel.add 이후 setVisible
+        view.setVisible(true);
+    }
+
+    // 말을 잡았는지 여부
+    public boolean hasExtraTurn() {
+        return game.hasExtraTurnFlag();
+    }
+
+}

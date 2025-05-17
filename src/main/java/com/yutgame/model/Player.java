@@ -1,6 +1,8 @@
 package main.java.com.yutgame.model;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 플레이어(또는 팀)를 나타내는 클래스.
@@ -50,6 +52,33 @@ public class Player {
      * 완주한 말의 개수를 반환
      */
     public long getFinishedCount() {
-        return pieces.stream().filter(Piece::isFinished).count();
+        Set<Piece> all = new HashSet<>();
+        for (Piece piece : pieces) {
+            collectGroup(piece, all);  // 재귀적으로 그룹까지 포함
+        }
+        return all.stream().filter(Piece::isFinished).count();
+    }
+
+    // 재귀적으로 그룹 말 포함
+    private void collectGroup(Piece piece, Set<Piece> visited) {
+        if (visited.contains(piece)) return;
+        visited.add(piece);
+        for (Piece grouped : piece.getGroupedPieces()) {
+            collectGroup(grouped, visited);
+        }
+    }
+
+    // 디버깅 용 함수: 사용자 모든 말의 히스토리를 보여줌
+    public void printAllPathHistories() {
+        System.out.println("[" + getName() + "] 모든 말의 경로 기록:");
+        int i = 1;
+        for (Piece p : pieces) {
+            System.out.print("말 " + i + ": ");
+            for (BoardNode node : p.getPathHistory()) {
+                System.out.print(node.getId() + " ");
+            }
+            System.out.println();
+            i++;
+        }
     }
 }

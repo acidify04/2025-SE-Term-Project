@@ -1,6 +1,8 @@
 package main.java.com.yutgame.model;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * 윷놀이 전체 로직(게임 시작, 말 이동, 윷 던지기, 턴/승리 관리 등)을 담당하는 클래스.
@@ -22,15 +24,25 @@ public class YutGame {
 
     private Random random;
 
-    public YutGame(List<Player> players, YutBoard board) {
-        this.players = players;
-        this.board = board;
+    public YutGame() {
         this.currentPlayerIndex = 0;
         this.isGameOver = false;
         this.winner = null;
         this.lastThrowResult = null;
         this.extraTurnFlag = false;
         this.random = new Random();
+    }
+
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+    }
+
+    public void setBoard(YutBoard board) {
+        this.board = board;
+    }
+
+    public void setLastThrowResult(YutThrowResult lastThrowResult) {
+        this.lastThrowResult = lastThrowResult;
     }
 
     /**
@@ -71,10 +83,6 @@ public class YutGame {
     /**
      * 지정 윷 던지기 (테스트/디버그용).
      */
-    public void throwYutManual(YutThrowResult manualResult) {
-        this.lastThrowResult = manualResult;
-    }
-
     public YutThrowResult getLastThrowResult() {
         return lastThrowResult;
     }
@@ -176,7 +184,7 @@ public class YutGame {
 
         // 3) 그룹된 말 동시 이동
         List<Piece> movedGroup = new ArrayList<>();
-        moveGroupWith(piece, targetNode, movedGroup);
+        moveGroupWith(piece, prevNode, targetNode, movedGroup);
 
         // 4) 잡기 / 업기 / 골인
         boolean didCapture = false;
@@ -195,6 +203,9 @@ public class YutGame {
         if (didCapture) extraTurnFlag = true;
 
         checkWinCondition();
+
+        // 디버그용 출력
+        piece.getOwner().printAllPathHistories();
 
         // ─ 디버그용 종결선
         System.out.println("[DEBUG] === movePiece end ===");
@@ -372,7 +383,7 @@ public class YutGame {
 
 
     // 말 그룹 이동
-    private void moveGroupWith(Piece piece, BoardNode targetNode, List<Piece> moved) {
+    private void moveGroupWith(Piece piece, BoardNode prevNode, BoardNode targetNode, List<Piece> moved) {
         if (moved.contains(piece)) return;
 
         // 빽도 + 시작점 도달 시 -> 먼저 미출발 처리
@@ -383,12 +394,15 @@ public class YutGame {
             // return 하지 말고, grouped 말도 계속 처리!
         } else {
             piece.moveTo(targetNode);
+            for (BoardNode node : findShortestPath(piece.getCurrentNode(), targetNode)) {
+                piece.recordNode(node); // 경로 기록 추가
+            }
             moved.add(piece);
         }
 
         // 무조건 grouped 말은 재귀 처리
         for (Piece child : piece.getGroupedPieces()) {
-            moveGroupWith(child, targetNode, moved);
+            moveGroupWith(child, prevNode, targetNode, moved);
         }
     }
 
@@ -400,20 +414,43 @@ public class YutGame {
                 && p.getPathHistory().size() >= 2;                    // 직전 노드가 존재해야 함
     }
 
-
-    // 업힌 말 백도
     private void moveGroupBackOneStep(Piece piece) {
-        Set<Piece> visited = new HashSet<>();
-        moveGroupBackOneStepHelper(piece, visited);
+        piece.moveBackOneStep();
     }
 
-    private void moveGroupBackOneStepHelper(Piece piece, Set<Piece> visited) {
-        if (visited.contains(piece)) return; // 무한 루프 방지
-        visited.add(piece);
+    public List<YutThrowResult> collectResults(
+            YutThrowResult firstResult,
+            boolean isRandom,
+            Supplier<YutThrowResult> manualThrowProvider,
+            Consumer<YutThrowResult> resultDisplayer,
+            Runnable promptExtraThrow,
+            List<YutThrowResult> results
+    ) {
+        int extraThrows = 0;
 
-        piece.moveBackOneStep();
-        for (Piece grouped : piece.getGroupedPieces()) {
-            moveGroupBackOneStepHelper(grouped, visited);
+        // 첫 결과 포함
+        if (firstResult == YutThrowResult.YUT || firstResult == YutThrowResult.MO)
+            extraThrows++;
+        if (extraTurnFlag)  // 잡았으면 true임
+            extraThrows++;
+
+        extraTurnFlag = false;  // 초기화 중요
+
+        while (extraThrows-- > 0) {
+            promptExtraThrow.run();
+            YutThrowResult next = isRandom ? throwYutRandom() : manualThrowProvider.get();
+            resultDisplayer.accept(next);
+            results.add(next);
+
+            // 던진 결과가 또 윷/모거나 잡았으면 추가
+            if (next == YutThrowResult.YUT || next == YutThrowResult.MO)
+                extraThrows++;
+            if (extraTurnFlag)
+                extraThrows++;
+
+            extraTurnFlag = false;  // 한 번만 적용되도록
         }
+
+        return results;
     }
 }

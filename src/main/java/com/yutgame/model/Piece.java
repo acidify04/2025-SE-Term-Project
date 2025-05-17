@@ -1,7 +1,9 @@
 package main.java.com.yutgame.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 플레이어의 말 하나를 나타내는 클래스.
@@ -76,7 +78,7 @@ public class Piece {
             pathHistory.add(node);
         }
         // ── 디버그: 현재 히스토리 출력
-        System.out.print("[DEBUG] " + owner.getName() + " pathHistory : ");
+        // System.out.print("[DEBUG] " + owner.getName() + " pathHistory : ");
         for (BoardNode n : pathHistory) {
             System.out.print(n.getId() + " ");
         }
@@ -88,22 +90,45 @@ public class Piece {
      * pop → 직전 노드로 실제 이동 → 히스토리 디버그 출력
      */
     public void moveBackOneStep() {
-        if (pathHistory.size() < 2) return;           // 뒤로 갈 곳이 없음
-        // 현재 위치 제거
-        pathHistory.remove(pathHistory.size() - 1);
-        BoardNode prev = pathHistory.get(pathHistory.size() - 1);
+        // 1. 그룹 수집
+        Set<Piece> group = new HashSet<>();
+        collectGroup(this, group);
 
-        if (currentNode != null) currentNode.removePiece(this);
-        prev.addPiece(this);
-        this.currentNode = prev;
+        // 2. 공유된 pathHistory
+        List<BoardNode> history = this.getPathHistory();
+        if (history.size() < 2) return;
 
-        // 디버그 출력
-        System.out.print("[DEBUG] " + owner.getName() + " pathHistory(after BAK_DO) : ");
-        for (BoardNode n : pathHistory) {
-            System.out.print(n.getId() + " ");
+        // ✅ 하나라도 currentNode가 null이면 안 됨
+        BoardNode current = null;
+        for (Piece p : group) {
+            if (p.getCurrentNode() != null) {
+                current = p.getCurrentNode();
+                break;
+            }
         }
-        System.out.println();
+        if (current == null) return;
+
+        int idx = history.lastIndexOf(current);
+        if (idx <= 0) return;
+
+        BoardNode prev = history.get(idx - 1);
+        history.remove(idx); // 한 번만 제거!
+
+        // 3. 그룹 전체 이동
+        for (Piece p : group) {
+            if (p.currentNode != null) p.currentNode.removePiece(p);
+            prev.addPiece(p);
+            p.currentNode = prev;
+
+            // 디버그 로그
+            System.out.print("[DEBUG] " + p.getOwner().getName() + " pathHistory(after BAK_DO) : ");
+            for (BoardNode n : history) {
+                System.out.print(n.getId() + " ");
+            }
+            System.out.println();
+        }
     }
+
 
     // 경로 확인용 getter
     public List<BoardNode> getPathHistory() {
@@ -115,13 +140,51 @@ public class Piece {
      * 아군 말과 업기(그룹화) 처리
      */
     public void groupWith(Piece other) {
-        if (!this.groupedPieces.contains(other)) {
-            this.groupedPieces.add(other);
+        if (this == other) return;
+
+        // 두 말이 포함된 전체 그룹 수집
+        Set<Piece> union = new HashSet<>();
+        collectGroup(this, union);
+        collectGroup(other, union);
+
+        // 모든 말의 groupedPieces를 일괄 초기화
+        for (Piece p : union) {
+            p.groupedPieces = new ArrayList<>();
         }
-        if (!other.groupedPieces.contains(this)) {
-            other.groupedPieces.add(this);
+
+        // 모든 말의 groupedPieces를 다시 설정
+        for (Piece p : union) {
+            for (Piece q : union) {
+                if (p != q) {
+                    p.groupedPieces.add(q);
+                }
+            }
+            p.isGrouped = true;
         }
-        isGrouped = true;
+
+        // ✅ 직접 확인용 출력 추가
+        System.out.println("groupWith: " + this + " + " + other + " → size=" + this.groupedPieces.size());
+
+        // this.piece 기준으로 그룹이 비어있는 경우 대비하여 안전장치
+        if (this.groupedPieces.isEmpty() && union.size() > 1) {
+            this.groupedPieces.addAll(union);
+            this.groupedPieces.remove(this); // 자기 자신 제외
+        }
+
+        // 모든 말이 동일한 pathHistory를 공유하도록 설정
+        List<BoardNode> sharedHistory = new ArrayList<>(this.pathHistory);
+        for (Piece p : union) {
+            p.pathHistory = sharedHistory;
+        }
+    }
+
+    // 현재 말과 연결된 모든 그룹 구성원을 재귀적으로 수집
+    private void collectGroup(Piece piece, Set<Piece> collected) {
+        if (collected.contains(piece)) return;
+        collected.add(piece);
+        for (Piece p : piece.getGroupedPieces()) {
+            collectGroup(p, collected);
+        }
     }
 
     public boolean isGroup(){
