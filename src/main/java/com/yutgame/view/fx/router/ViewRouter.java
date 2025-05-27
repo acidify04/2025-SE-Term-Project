@@ -2,17 +2,19 @@ package main.java.com.yutgame.view.fx.router;
 
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.view.fx.*;
 
 public class ViewRouter {
 
     private final Stage primary;
-
+    private final YutGameController controller;
     private final FXYutGameView fxView;
 
-    public ViewRouter(Stage stage, FXYutGameView fxView) {
+    public ViewRouter(Stage stage, FXYutGameView fxView, YutGameController controller) {
         this.primary = stage;
         this.fxView = fxView;
+        this.controller = controller;
     }
 
     public void showTitle() {
@@ -37,8 +39,8 @@ public class ViewRouter {
         int players = fxView.getPlayerCount();
         int pieces = fxView.getPieceCount();
 
-        //GameBoardView boardView = new GameBoardView(board, players, pieces);
-        //setScene(boardView.scene());
+        GameBoardView boardView = new GameBoardView(controller, board, players, pieces);
+        setScene(boardView.scene());
     }
 
     public void exit() {

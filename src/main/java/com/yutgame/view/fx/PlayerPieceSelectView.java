@@ -5,13 +5,11 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import main.java.com.yutgame.view.fx.router.ViewRouter;
 
 import java.io.InputStream;
@@ -62,12 +60,12 @@ public class PlayerPieceSelectView {
         select.setTranslateX(95);
         select.setTranslateY(270);
 
-        ImageView initPlayer = safeLoadImage("/fx/result/player/null.png");
+        ImageView initPlayer = safeLoadImage("/fx/set/setPlayer/null.png");
         initPlayer.setFitWidth(360);
         initPlayer.setFitHeight(151);
         playerImage.getChildren().add(initPlayer);
 
-        ImageView initPiece = safeLoadImage("/fx/result/player/null.png");
+        ImageView initPiece = safeLoadImage("/fx/set/setPlayer/null.png");
         initPiece.setFitWidth(360);
         initPiece.setFitHeight(151);
         pieceImage.getChildren().add(initPiece);
@@ -78,7 +76,7 @@ public class PlayerPieceSelectView {
 
         // 버튼들을 적절한 위치로 조정
         ImageView back = clickableImage("/fx/button/btn_back.png",
-                e -> router.showTitle());
+                e -> router.showBoardSelect());
         ImageView next = clickableImage("/fx/button/btn_next.png",
                 e -> {
                     onPlayerSelected.accept(selectedPlayer);  // 선택된 인덱스를 외부로 전달!
@@ -179,10 +177,10 @@ public class PlayerPieceSelectView {
 
         ImageView img;
         if (type == CardType.PLAYER) {
-            img = safeLoadImage("/fx/result/player/player_" + (selectedIndex + 2) + ".png");
+            img = safeLoadImage("/fx/set/setPlayer/player_" + (selectedIndex + 2) + ".png");
             playerImage.getChildren().add(img);
         }else{
-            img = safeLoadImage("/fx/result/piece/piece_" + (selectedIndex + 2) + ".png");
+            img = safeLoadImage("/fx/set/setPiece/piece_" + (selectedIndex + 2) + ".png");
             pieceImage.getChildren().add(img);
         }
         img.setFitHeight(151);

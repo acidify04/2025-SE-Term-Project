@@ -9,8 +9,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.Cursor;
-import javafx.scene.effect.DropShadow;
-import javafx.scene.paint.Color;
+
 import java.util.*;
 import java.io.InputStream;
 import java.util.function.Consumer;
@@ -28,11 +27,11 @@ public class BoardSelectView {
 
     public BoardSelectView(ViewRouter router, Consumer<Integer> onBoardSelected) {
 
-        StackPane square   = card("/fx/board/board_square.png", "/fx/text/txt_square.png",
+        StackPane square   = card("/fx/board/setting/board_square.png", "/fx/text/txt_square.png",
                 BoardChoice.SQUARE);
-        StackPane pentagon = card("/fx/board/board_pentagon.png", "/fx/text/txt_pentagon.png",
+        StackPane pentagon = card("/fx/board/setting/board_pentagon.png", "/fx/text/txt_pentagon.png",
                 BoardChoice.PENTAGON);
-        StackPane hexagon  = card("/fx/board/board_hexagon.png", "/fx/text/txt_hexagon.png",
+        StackPane hexagon  = card("/fx/board/setting/board_hexagon.png", "/fx/text/txt_hexagon.png",
                 BoardChoice.HEXAGON);
 
         // 보드 카드들을 더 아래로 이동하고 크기 증가
@@ -129,7 +128,7 @@ public class BoardSelectView {
         for (int i = 0; i < boardImages.size(); i++) {
             ImageView board = boardImages.get(i);
             board.setEffect(null);
-            board.setImage(new Image("/fx/board/" + getBoardImageName(i, 0)));
+            board.setImage(new Image("/fx/board/setting/" + getBoardImageName(i, 0)));
             ImageView text = textImages.get(i);
             StackPane pane = cardPanes.get(i);
 
@@ -145,7 +144,7 @@ public class BoardSelectView {
 
         // 선택된 보드 효과 적용
         ImageView selectedBoard = boardImages.get(selectedIndex);
-        selectedBoard.setImage(new Image("/fx/board/" + getBoardImageName(selectedIndex, 2)));
+        selectedBoard.setImage(new Image("/fx/board/setting/" + getBoardImageName(selectedIndex, 2)));
 
         // 선택된 텍스트에 효과 적용
         ImageView selectedText = textImages.get(selectedIndex);

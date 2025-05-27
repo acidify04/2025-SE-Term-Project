@@ -19,7 +19,6 @@ public class FXYutGameView implements YutGameView {
     private final ViewRouter router;
     private YutGameController controller;
 
-    private boolean isRandomThrow = false;
     private int playerCount;
     private int pieceCount;
     private int boardChoice;
@@ -30,7 +29,7 @@ public class FXYutGameView implements YutGameView {
         stage.setTitle("윷놀이");
         stage.setResizable(false);
 
-        this.router = new ViewRouter(stage, this);
+        this.router = new ViewRouter(stage, this, controller);
         router.showTitle(); // 앱 실행 시 Title부터 시작
 
         // Stage를 Scene에 정확히 맞춤
