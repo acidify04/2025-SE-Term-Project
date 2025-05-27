@@ -18,24 +18,26 @@ public class TitleView {
     public TitleView(ViewRouter router) {
 
         /* 배경 */
-        ImageView bg = new ImageView(new Image("/fx/bg_start.png"));
+        ImageView bg = new ImageView(new Image("/fx/background/bg_start.png"));
         bg.setFitWidth(1049);
         bg.setFitHeight(686);
         bg.setPreserveRatio(false);
 
         /* 버튼들을 ImageView로 직접 만들기 */
-        ImageView startBtn = clickableImage("/fx/btn_start.png",
+        ImageView startBtn = clickableImage("/fx/button/btn_start.png",
                 e -> router.showBoardSelect());
-        ImageView exitBtn = clickableImage("/fx/btn_exit.png",
+        ImageView exitBtn = clickableImage("/fx/button/btn_exit.png",
                 e -> router.exit());
 
         // 시작 버튼 위치 설정
-        startBtn.setTranslateX(220);
+        startBtn.setTranslateX(200);
         startBtn.setTranslateY(50);
+        startBtn.setFitWidth(400);
 
         // 종료 버튼 위치 설정
-        exitBtn.setTranslateX(220);
-        exitBtn.setTranslateY(120);  // 간격 조정
+        exitBtn.setTranslateX(200);
+        exitBtn.setTranslateY(150);  // 간격 조정
+        exitBtn.setFitWidth(400);
 
         StackPane root = new StackPane(bg, startBtn, exitBtn);
 

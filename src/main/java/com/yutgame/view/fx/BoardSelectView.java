@@ -10,11 +10,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.Cursor;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.effect.InnerShadow;
-import javafx.scene.effect.Bloom;
 import javafx.scene.paint.Color;
 import java.util.*;
 import java.io.InputStream;
+import java.util.function.Consumer;
 
 public class BoardSelectView {
 
@@ -27,36 +26,40 @@ public class BoardSelectView {
     private final List<ImageView> textImages = new ArrayList<>();
     private final List<StackPane> cardPanes = new ArrayList<>();
 
-    public BoardSelectView(ViewRouter router) {
+    public BoardSelectView(ViewRouter router, Consumer<Integer> onBoardSelected) {
 
-        StackPane square   = card("/fx/board_square.png","/fx/txt_square.png",
+        StackPane square   = card("/fx/board/board_square.png", "/fx/text/txt_square.png",
                 BoardChoice.SQUARE);
-        StackPane pentagon = card("/fx/board_pentagon.png","/fx/txt_pentagon.png",
+        StackPane pentagon = card("/fx/board/board_pentagon.png", "/fx/text/txt_pentagon.png",
                 BoardChoice.PENTAGON);
-        StackPane hexagon  = card("/fx/board_hexagon.png","/fx/txt_hexagon.png",
+        StackPane hexagon  = card("/fx/board/board_hexagon.png", "/fx/text/txt_hexagon.png",
                 BoardChoice.HEXAGON);
-        focus(0); // 첫 번째 카드 선택
 
         // 보드 카드들을 더 아래로 이동하고 크기 증가
         HBox cardBox = new HBox(40, square, pentagon, hexagon);  // 간격 증가
         cardBox.setAlignment(Pos.CENTER);
-        cardBox.setTranslateY(120);  // 더 아래로 이동
+        cardBox.setTranslateY(180);  // 더 아래로 이동
 
         // 버튼들을 적절한 위치로 조정
-        ImageView back = clickableImage("/fx/btn_back.png",
+        ImageView back = clickableImage("/fx/button/btn_back.png",
                 e -> router.showTitle());
-        ImageView next = clickableImage("/fx/btn_next.png",
-                e -> System.out.println("선택된 보드: " + selected));
+        ImageView next = clickableImage("/fx/button/btn_next.png",
+                e -> {
+                    onBoardSelected.accept(selected.ordinal());  // 선택된 보드 인덱스를 외부로 전달!
+                    router.showPlayerPieceSelect();
+                });
+        back.setFitWidth(250);
+        next.setFitWidth(250);
 
-        HBox btnLine = new HBox(450, back, next);
+        HBox btnLine = new HBox(350, back, next);
         btnLine.setAlignment(Pos.CENTER);
-        btnLine.setTranslateY(75);  // 적절한 위치로 조정
+        btnLine.setTranslateY(60);  // 적절한 위치로 조정
 
         VBox content = new VBox(60, cardBox, btnLine);
         content.setAlignment(Pos.CENTER);
 
         // 배경 이미지
-        ImageView bgImage = safeLoadImage("/fx/bg_board.png");
+        ImageView bgImage = safeLoadImage("/fx/background/bg_board.png");
         bgImage.setFitWidth(1028);
         bgImage.setFitHeight(672);
         bgImage.setPreserveRatio(false);
@@ -125,12 +128,10 @@ public class BoardSelectView {
         // 모든 카드 초기화
         for (int i = 0; i < boardImages.size(); i++) {
             ImageView board = boardImages.get(i);
+            board.setEffect(null);
+            board.setImage(new Image("/fx/board/" + getBoardImageName(i, 0)));
             ImageView text = textImages.get(i);
             StackPane pane = cardPanes.get(i);
-
-            // 모든 효과 제거
-            board.setEffect(null);
-            text.setEffect(null);
 
             // 크기와 투명도 초기화
             pane.setOpacity(1.0);
@@ -139,49 +140,29 @@ public class BoardSelectView {
 
             // 텍스트 투명도 조정
             text.setOpacity(0.5);
+            text.setImage(new Image("/fx/text/txt_" + getBoardImageName(i, 1)));
         }
 
-        // 선택된 보드에 고급스러운 효과 적용
+        // 선택된 보드 효과 적용
         ImageView selectedBoard = boardImages.get(selectedIndex);
+        selectedBoard.setImage(new Image("/fx/board/" + getBoardImageName(selectedIndex, 2)));
 
-        // 보드에 다중 그림자 효과 (더 고급스럽게)
-        DropShadow outerShadow = new DropShadow();
-        outerShadow.setColor(Color.web("#1D6115"));
-        outerShadow.setRadius(15);
-        outerShadow.setSpread(0.3);
-        outerShadow.setOffsetX(0);
-        outerShadow.setOffsetY(0);
-
-        InnerShadow innerShadow = new InnerShadow();
-        innerShadow.setColor(Color.web("#4CAF50"));
-        innerShadow.setRadius(8);
-        innerShadow.setChoke(0.2);
-        innerShadow.setInput(outerShadow);  // 효과 체인
-
-        selectedBoard.setEffect(innerShadow);
-
-        // 선택된 텍스트에 고급스러운 효과 적용
+        // 선택된 텍스트에 효과 적용
         ImageView selectedText = textImages.get(selectedIndex);
-
-        // 텍스트에 블룸 + 드롭섀도우 조합 (가독성 좋으면서 고급스럽게)
-        DropShadow textShadow = new DropShadow();
-        textShadow.setColor(Color.web("rgba(0,0,0,0.8)"));
-        textShadow.setRadius(3);
-        textShadow.setSpread(0.2);
-        textShadow.setOffsetX(2);
-        textShadow.setOffsetY(2);
-
-        Bloom textBloom = new Bloom();
-        textBloom.setThreshold(0.3);
-        textBloom.setInput(textShadow);  // 효과 체인
-
-        selectedText.setEffect(textBloom);
-        selectedText.setOpacity(1.0);  // 완전히 진하게
+        selectedText.setImage(new Image("/fx/text/txt_" + getBoardImageName(selectedIndex, 2)));
 
         // 선택된 카드 전체에 살짝 확대 효과
         StackPane selectedPane = cardPanes.get(selectedIndex);
         selectedPane.setScaleX(1.02);
         selectedPane.setScaleY(1.02);
+    }
+
+    private String getBoardImageName(int index, int change) {  // change = 2 : highlight
+        String[] baseNames = { "square", "pentagon", "hexagon" };
+        String base = baseNames[index];  // 0=사각형, 1=오각형, 2=육각형
+        if (change == 1) return base + ".png";
+        else if (change == 2) return base + "_highlight.png";
+        else return "board_" + base + ".png";
     }
 
     private boolean isSelected(int index) {

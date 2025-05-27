@@ -6,7 +6,7 @@
 package main.java.com.yutgame;
 
 import main.java.com.yutgame.controller.YutGameController;
-import main.java.com.yutgame.view.fx.MainApp;            // JavaFX Application
+import main.java.com.yutgame.view.fx.FXAppLauncher;            // JavaFX Application
 import javax.swing.SwingUtilities;
 import javafx.application.Application;
 
@@ -14,6 +14,9 @@ public class Main {
 
     public static void main(String[] args) {
 
+        YutGameController controller = new YutGameController();
+
+        /*
         boolean useFx = false;
         for (String arg : args) {
             if ("fx".equalsIgnoreCase(arg) || "--fx".equalsIgnoreCase(arg)) {
@@ -23,15 +26,18 @@ public class Main {
         }
 
         if (!useFx) {
-            /* ───────── JavaFX 모드 ───────── */
-            Application.launch(MainApp.class, args);
+            //───────── JavaFX 모드 ─────────
+            Application.launch(FXAppLauncher.class, args);
 
         } else {
-            /* ───────── Swing 모드 (기존) ───────── */
+            //───────── Swing 모드 (기존) ─────────
             SwingUtilities.invokeLater(() -> {
                 YutGameController controller = new YutGameController();
                 controller.initializeGame();   // 내부에서 Swing View 호출
             });
         }
+         */
+
+
     }
 }
