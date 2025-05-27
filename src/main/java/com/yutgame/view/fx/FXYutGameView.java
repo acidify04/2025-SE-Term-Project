@@ -1,13 +1,6 @@
 package main.java.com.yutgame.view.fx;
 
 import javafx.application.Platform;
-import javafx.scene.Scene;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.view.YutGameView;
@@ -30,13 +23,17 @@ public class FXYutGameView implements YutGameView {
         stage.setResizable(false);
 
         this.router = new ViewRouter(stage, this, controller);
+        initBoardPanel();
+    }
+
+    @Override
+    public void initBoardPanel(){
         router.showTitle(); // 앱 실행 시 Title부터 시작
 
         // Stage를 Scene에 정확히 맞춤
-        stage.sizeToScene();
-
-        stage.centerOnScreen();
-        stage.show();
+        primaryStage.sizeToScene();
+        primaryStage.centerOnScreen();
+        primaryStage.show();
     }
 
     @Override
@@ -80,7 +77,7 @@ public class FXYutGameView implements YutGameView {
     }
 
     @Override
-    public void setVisible(boolean visible) {
+    public void setVisibleBoard(boolean visible) {
         Platform.runLater(() -> {
             if (visible) primaryStage.show();
             else primaryStage.hide();

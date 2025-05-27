@@ -148,7 +148,7 @@ public class YutGameController {
         return game;
     }
 
-    /*
+
     // YutGameController.java
     public void initializeGame() {
         view.setController(this);
@@ -159,9 +159,8 @@ public class YutGameController {
 
         this.game = createGame(players, pieces, board);
         view.initBoardPanel(); // → boardPanel.add 이후 setVisible
-        view.setVisible(true);
+        view.setVisibleBoard(true);
     }
-     */
 
     /**
      * 게임 시작 전, 말이 보드에 놓여있지 않은지 확인

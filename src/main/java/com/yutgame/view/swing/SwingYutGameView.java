@@ -360,6 +360,7 @@ public class SwingYutGameView extends JFrame implements YutGameView {
     }
 
     // SwingYutGameView.java
+    @Override
     public void initBoardPanel() {
         this.boardPanel = new BoardPanel(controller);
         add(boardPanel, BorderLayout.CENTER);
@@ -373,7 +374,7 @@ public class SwingYutGameView extends JFrame implements YutGameView {
     }
 
     @Override
-    public void setVisible(boolean visible) {
+    public void setVisibleBoard(boolean visible) {
         this.setVisible(visible);
     }
 }

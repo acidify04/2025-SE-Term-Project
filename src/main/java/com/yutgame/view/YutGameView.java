@@ -9,7 +9,9 @@ public interface YutGameView {
     int getPieceCount();
     int getBoardChoice();
 
+    void initBoardPanel();
+
     void repaintBoard();
 
-    void setVisible(boolean visible);
+    void setVisibleBoard(boolean visible);
 }

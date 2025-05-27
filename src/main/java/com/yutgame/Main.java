@@ -16,28 +16,11 @@ public class Main {
 
         YutGameController controller = new YutGameController();
 
+        // swing 호출 시 주석 제거
         /*
-        boolean useFx = false;
-        for (String arg : args) {
-            if ("fx".equalsIgnoreCase(arg) || "--fx".equalsIgnoreCase(arg)) {
-                useFx = true;
-                break;
-            }
-        }
-
-        if (!useFx) {
-            //───────── JavaFX 모드 ─────────
-            Application.launch(FXAppLauncher.class, args);
-
-        } else {
-            //───────── Swing 모드 (기존) ─────────
-            SwingUtilities.invokeLater(() -> {
-                YutGameController controller = new YutGameController();
-                controller.initializeGame();   // 내부에서 Swing View 호출
-            });
-        }
+        SwingUtilities.invokeLater(() -> {
+            controller.initializeGame();   // 내부에서 Swing View 호출
+        });
          */
-
-
     }
 }
