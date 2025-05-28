@@ -33,7 +33,7 @@ public class ViewRouter {
         ).scene());
     }
 
-    public void showGameBoard() {
+    public void showGameBoard(YutGameController controller) {
         // 보드 타입, 인원 수, 말 개수에 따라 실제 게임 뷰 구성
         int board = fxView.getBoardChoice();     // 0 : square, 1 : pentagon, 2 : hexagon
         int players = fxView.getPlayerCount();
