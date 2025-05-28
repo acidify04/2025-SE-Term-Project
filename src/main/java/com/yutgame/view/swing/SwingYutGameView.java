@@ -3,6 +3,7 @@ package main.java.com.yutgame.view.swing;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.dto.PieceDecisionResult;
 import main.java.com.yutgame.model.*;
+import main.java.com.yutgame.view.YutGameView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,7 +11,7 @@ import java.util.List;
 
 import static main.java.com.yutgame.model.YutThrowResult.*;
 
-public class SwingYutGameView extends JFrame {
+public class SwingYutGameView extends JFrame implements YutGameView {
 
     private BoardPanel boardPanel;
     private JButton randomThrowButton;
@@ -77,14 +78,17 @@ public class SwingYutGameView extends JFrame {
         initButtonListeners();
     }
 
+    @Override
     public int getPlayerCount() {
         return playerCount;
     }
 
+    @Override
     public int getPieceCount() {
         return pieceCount;
     }
 
+    @Override
     public int getBoardChoice() {
         return boardChoice;
     }
@@ -345,6 +349,7 @@ public class SwingYutGameView extends JFrame {
         return (ch < 0 || ch >= cands.size()) ? null : cands.get(ch);
     }
 
+    @Override
     public void setController(YutGameController controller) {
         this.controller = controller;
         this.boardPanel = new BoardPanel(controller);
@@ -355,10 +360,21 @@ public class SwingYutGameView extends JFrame {
     }
 
     // SwingYutGameView.java
+    @Override
     public void initBoardPanel() {
         this.boardPanel = new BoardPanel(controller);
         add(boardPanel, BorderLayout.CENTER);
         revalidate();
         repaint();
+    }
+
+    @Override
+    public void repaintBoard() {
+        this.repaint();
+    }
+
+    @Override
+    public void setVisibleBoard(boolean visible) {
+        this.setVisible(visible);
     }
 }

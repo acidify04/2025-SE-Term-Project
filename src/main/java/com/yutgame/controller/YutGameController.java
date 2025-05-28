@@ -1,7 +1,12 @@
 package main.java.com.yutgame.controller;
 
+import javafx.stage.Stage;
 import main.java.com.yutgame.dto.PieceDecisionResult;
 import main.java.com.yutgame.model.*;
+import main.java.com.yutgame.view.YutGameView;
+import main.java.com.yutgame.view.fx.FXAppLauncher;
+import main.java.com.yutgame.view.fx.FXYutGameView;
+import main.java.com.yutgame.view.fx.router.ViewRouter;
 import main.java.com.yutgame.view.swing.SwingYutGameView;
 
 import javax.swing.*;
@@ -14,21 +19,29 @@ import static main.java.com.yutgame.model.YutThrowResult.*;
 
 public class YutGameController {
     private YutGame game;
-    private SwingYutGameView view;
+    private YutGameView view;
 
 
     public YutGameController() {
         this.game = new YutGame();
-        this.view = new SwingYutGameView();
+        // SwingView 선택 시
+        //this.view = new SwingYutGameView();
+
+        // JavaFXView 선택 시
+        launch();
+
         view.setController(this);
     }
 
+    public void launch() {
+        FXAppLauncher.launchApp(this); // 여기서 JavaFX UI 실행
+    }
 
     public YutGame getGame() {
         return game;
     }
 
-    public SwingYutGameView getView() {
+    public YutGameView getView() {
         return view;
     }
 
@@ -99,7 +112,7 @@ public class YutGameController {
 
     public void nextTurn() {
         game.nextTurn();
-        view.repaint();
+        view.repaintBoard();
     }
 
     public void movePiece(Piece piece, BoardNode targetNode, boolean containsStart) {
@@ -135,6 +148,7 @@ public class YutGameController {
         return game;
     }
 
+
     // YutGameController.java
     public void initializeGame() {
         view.setController(this);
@@ -145,7 +159,7 @@ public class YutGameController {
 
         this.game = createGame(players, pieces, board);
         view.initBoardPanel(); // → boardPanel.add 이후 setVisible
-        view.setVisible(true);
+        view.setVisibleBoard(true);
     }
 
     /**
