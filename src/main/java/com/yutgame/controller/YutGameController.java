@@ -26,11 +26,10 @@ public class YutGameController {
         this.game = new YutGame();
         // SwingView 선택 시
         //this.view = new SwingYutGameView();
+        //view.setController(this);
 
-        // JavaFXView 선택 시
+        // javaFX 선택 시
         launch();
-
-        view.setController(this);
     }
 
     public void launch() {
@@ -47,6 +46,10 @@ public class YutGameController {
 
     public void setGame(YutGame game) {
         this.game = game;
+    }
+
+    public void setView(YutGameView view) {
+        this.view = view;
     }
 
     // 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환
@@ -148,7 +151,6 @@ public class YutGameController {
         return game;
     }
 
-
     // YutGameController.java
     public void initializeGame() {
         view.setController(this);
@@ -158,7 +160,7 @@ public class YutGameController {
         int board   = view.getBoardChoice();
 
         this.game = createGame(players, pieces, board);
-        view.initBoardPanel(); // → boardPanel.add 이후 setVisible
+        view.initBoardPanel();
         view.setVisibleBoard(true);
     }
 
@@ -287,7 +289,6 @@ public class YutGameController {
             case YUT     -> 4;
             case MO      -> 5;
         };
-
         return steps;
     }
 

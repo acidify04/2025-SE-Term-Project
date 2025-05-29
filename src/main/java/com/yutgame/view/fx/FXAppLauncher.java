@@ -9,6 +9,7 @@ public class FXAppLauncher extends Application {
 
     private static YutGameController controller;
 
+
     public static void launchApp(YutGameController c) {
         controller = c;
         launch(); // JavaFX 애플리케이션 실행
@@ -17,5 +18,7 @@ public class FXAppLauncher extends Application {
     @Override
     public void start(Stage stage) {
         FXYutGameView view = new FXYutGameView(stage);
+        view.setController(controller);
+        controller.setView(view);
     }
 }

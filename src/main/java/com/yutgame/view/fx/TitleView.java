@@ -1,5 +1,6 @@
 package main.java.com.yutgame.view.fx;
 
+import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.view.fx.router.ViewRouter;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -12,10 +13,12 @@ import javafx.scene.Cursor;
 
 public class TitleView {
 
+    private YutGameController controller;
     private final Scene scene;
     public Scene scene() { return scene; }
 
-    public TitleView(ViewRouter router) {
+    public TitleView(YutGameController controller, ViewRouter router) {
+        this.controller = controller;
 
         /* 배경 */
         ImageView bg = new ImageView(new Image("/fx/background/bg_start.png"));
@@ -25,7 +28,7 @@ public class TitleView {
 
         /* 버튼들을 ImageView로 직접 만들기 */
         ImageView startBtn = clickableImage("/fx/button/btn_start.png",
-                e -> router.showBoardSelect());
+                e -> router.showBoardSelect(controller));
         ImageView exitBtn = clickableImage("/fx/button/btn_exit.png",
                 e -> router.exit());
 
