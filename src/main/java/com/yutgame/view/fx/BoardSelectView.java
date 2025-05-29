@@ -1,5 +1,6 @@
 package main.java.com.yutgame.view.fx;
 
+import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.view.fx.router.ViewRouter;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -15,6 +16,7 @@ import java.io.InputStream;
 import java.util.function.Consumer;
 
 public class BoardSelectView {
+    private YutGameController controller;
 
     public enum BoardChoice { SQUARE, PENTAGON, HEXAGON }
     private BoardChoice selected = BoardChoice.SQUARE;
@@ -25,7 +27,8 @@ public class BoardSelectView {
     private final List<ImageView> textImages = new ArrayList<>();
     private final List<StackPane> cardPanes = new ArrayList<>();
 
-    public BoardSelectView(ViewRouter router, Consumer<Integer> onBoardSelected) {
+    public BoardSelectView(YutGameController controller, ViewRouter router, Consumer<Integer> onBoardSelected) {
+        this.controller = controller;
 
         StackPane square   = card("/fx/board/setting/board_square.png", "/fx/text/txt_square.png",
                 BoardChoice.SQUARE);
@@ -41,11 +44,11 @@ public class BoardSelectView {
 
         // 버튼들을 적절한 위치로 조정
         ImageView back = clickableImage("/fx/button/btn_back.png",
-                e -> router.showTitle());
+                e -> router.showTitle(controller));
         ImageView next = clickableImage("/fx/button/btn_next.png",
                 e -> {
                     onBoardSelected.accept(selected.ordinal());  // 선택된 보드 인덱스를 외부로 전달!
-                    router.showPlayerPieceSelect();
+                    router.showPlayerPieceSelect(controller);
                 });
         back.setFitWidth(250);
         next.setFitWidth(250);

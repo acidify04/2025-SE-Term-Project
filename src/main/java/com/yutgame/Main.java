@@ -15,6 +15,8 @@ public class Main {
     public static void main(String[] args) {
 
         YutGameController controller = new YutGameController();
+        // javaFX 호출 시 주석 제거
+        // controller.initializeGame();
 
         // swing 호출 시 주석 제거
         /*
@@ -22,5 +24,6 @@ public class Main {
             controller.initializeGame();   // 내부에서 Swing View 호출
         });
          */
+
     }
 }

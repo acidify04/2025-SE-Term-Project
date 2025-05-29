@@ -11,7 +11,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import main.java.com.yutgame.controller.YutGameController;
+import main.java.com.yutgame.model.BoardNode;
 
+import java.awt.*;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,9 +35,75 @@ public class GameBoardView {
     private List<VBox> playerPieces = new ArrayList<>();
     private List<ImageView> buttonImg = new ArrayList<>();
     private List<StackPane> buttonPane = new ArrayList<>();
+    private List<StackPane> allResultPanes = new ArrayList<>();
 
     public GameBoardView(YutGameController controller, int boardType, int playerCount, int pieceCount) {
-        // 캐릭터, 말
+        this.controller = controller;
+
+        // Players, Pieces 그리기
+        VBox Players = drawPlayers(playerCount, pieceCount);
+
+        // 윷 던지기 버튼 그리기
+        StackPane randomThrow = throwButton("/fx/button/game/randomBtn.png", ThrowType.RANDOM);
+        StackPane manualThrow = throwButton("/fx/button/game/selectBtn.png", ThrowType.MANUAL);
+
+        HBox Buttons = new HBox(randomThrow, manualThrow);
+        Buttons.setTranslateX(470);
+        Buttons.setTranslateY(30);
+
+        // 게임판 이미지 그리기
+        ImageView board = switch (boardType) {
+            case 0 -> safeLoadImage("/fx/board/game/square_board_empty.png");
+            case 1 -> safeLoadImage("/fx/board/game/pentagon_board_empty.png");
+            case 2 -> safeLoadImage("/fx/board/game/hexagon_board_empty.png");
+            default -> safeLoadImage("/fx/board/game/square_board_empty.png");
+        };
+
+        switch (boardType) {
+            case 0 -> { // 사각형
+                board.setFitWidth(450);
+                board.setFitHeight(450);
+            }
+            case 1 -> { // 오각형
+                board.setFitWidth(500);
+                board.setFitHeight(500);
+            }
+            case 2 -> { // 육각형
+                board.setFitWidth(500);
+                board.setFitHeight(450);
+            }
+        }
+        board.setTranslateY(42);
+        board.setPreserveRatio(false);
+
+        // 노드 그리기
+
+
+        // 배경 이미지 그리기
+        ImageView bgImage = switch (playerCount) {
+            case 2 -> safeLoadImage("/fx/background/game/bg_game_2.png");
+            case 3 -> safeLoadImage("/fx/background/game/bg_game_3.png");
+            case 4 -> safeLoadImage("/fx/background/game/bg_game_4.png");
+            default -> safeLoadImage("/fx/background/game/bg_game_2.png");
+        };
+        bgImage.setFitWidth(870);
+        bgImage.setFitHeight(570);
+        bgImage.setPreserveRatio(false);
+
+        StackPane root = new StackPane(bgImage, Players, board, Buttons);
+        this.scene = new Scene(root, 870, 570);
+    }
+
+    //private StackPane drawNode (BoardNode node){
+
+    //}
+
+    //private StackPane drawPieces(BoardNode node) {
+
+    //}
+
+    private VBox drawPlayers (int playerCount, int pieceCount){
+        // 각 캐릭터 이미지, 말 이미지, 윷 결과판 이미지 생성
         for (int i = 0; i < playerCount; i++) {
             int playerNum = i + 1;
             ImageView img = safeLoadImage("/fx/player/player_" + playerNum + ".png");
@@ -62,16 +130,26 @@ public class GameBoardView {
                 pieces.getChildren().add(pieceImg);
             }
             allPieces.add(pieces);
+
+            // 윷 결과판
+            ImageView pane = safeLoadImage("/fx/result/blank.png");
+            pane.setFitWidth(153);
+            pane.setFitHeight(38);
+            pane.setPreserveRatio(false);
+            pane.setSmooth(true);
+            StackPane resultPane = new StackPane(pane);
+            resultPane.setPrefSize(153, 38);
+            allResultPanes.add(resultPane);
         }
 
-        // 사용자와 말 수직박스로 묶기
+        // 사용자와 말, 윷 결과판 수직박스로 묶기
         for (int i = 0; i < playerCount; i++) {
-            if (i<=1){
-                VBox connect = new VBox(allPlayers.get(i), allPieces.get(i));
+            if (i<=1){   // 윗 줄은 플레이어 이미지가 위로 오게
+                VBox connect = new VBox(allPlayers.get(i), allPieces.get(i), allResultPanes.get(i));
                 connect.setSpacing(10);
                 playerPieces.add(connect);
-            }else if (i>1){
-                VBox connect = new VBox(allPieces.get(i), allPlayers.get(i));
+            }else if (i>1){   // 아래 줄은 피스 이미지가 위로 오게
+                VBox connect = new VBox(allResultPanes.get(i), allPieces.get(i), allPlayers.get(i));
                 connect.setSpacing(10);
                 playerPieces.add(connect);
             }
@@ -83,69 +161,24 @@ public class GameBoardView {
         // 사용자 캐릭터 이미지
         HBox upPlayers = new HBox(500, playerPieces.get(0), playerPieces.get(1));
         upPlayers.setAlignment(Pos.CENTER);
-        upPlayers.setTranslateY(-50);
+        upPlayers.setTranslateY(0);
 
         HBox underPlayers = new HBox();
         if (playerCount == 3){
             underPlayers.getChildren().add(playerPieces.get(2));
             underPlayers.setTranslateX(35);
-            underPlayers.setTranslateY(50);
+            underPlayers.setTranslateY(0);
         }else if (playerCount == 4){
             underPlayers.getChildren().addAll(playerPieces.get(2), playerPieces.get(3));
             underPlayers.setSpacing(500);
             upPlayers.setAlignment(Pos.CENTER);
-            underPlayers.setTranslateX(45);
-            underPlayers.setTranslateY(50);
+            underPlayers.setTranslateX(35);
+            underPlayers.setTranslateY(0);
         }
         VBox Players = new VBox(100, upPlayers, underPlayers);
         Players.setAlignment(Pos.CENTER);
 
-        // 윷 던지기 버튼
-        StackPane randomThrow = throwButton("/fx/button/game/randomBtn.png", ThrowType.RANDOM);
-        StackPane manualThrow = throwButton("/fx/button/game/selectBtn.png", ThrowType.MANUAL);
-
-        HBox Buttons = new HBox(randomThrow, manualThrow);
-        Buttons.setTranslateX(470);
-        Buttons.setTranslateY(30);
-
-        // 게임판 이미지
-        ImageView board = switch (boardType) {
-            case 0 -> safeLoadImage("/fx/board/game/square_board_empty.png");
-            case 1 -> safeLoadImage("/fx/board/game/pentagon_board_empty.png");
-            case 2 -> safeLoadImage("/fx/board/game/hexagon_board_empty.png");
-            default -> safeLoadImage("/fx/board/game/square_board_empty.png");
-        };
-
-        switch (boardType) {
-            case 0 -> { // 사각형
-                board.setFitWidth(450);
-                board.setFitHeight(450);
-            }
-            case 1 -> { // 오각형
-                board.setFitWidth(500);
-                board.setFitHeight(500);
-            }
-            case 2 -> { // 육각형
-                board.setFitWidth(500);
-                board.setFitHeight(450);
-            }
-        }
-        board.setTranslateY(42);
-        board.setPreserveRatio(false);
-
-        // 배경 이미지
-        ImageView bgImage = switch (playerCount) {
-            case 2 -> safeLoadImage("/fx/background/game/bg_game_2.png");
-            case 3 -> safeLoadImage("/fx/background/game/bg_game_3.png");
-            case 4 -> safeLoadImage("/fx/background/game/bg_game_4.png");
-            default -> safeLoadImage("/fx/background/game/bg_game_2.png");
-        };
-        bgImage.setFitWidth(870);
-        bgImage.setFitHeight(570);
-        bgImage.setPreserveRatio(false);
-
-        StackPane root = new StackPane(bgImage, Players, board, Buttons);
-        this.scene = new Scene(root, 870, 570);
+        return Players;
     }
 
     private StackPane throwButton (String imagePath, ThrowType type){

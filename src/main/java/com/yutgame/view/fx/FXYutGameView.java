@@ -22,13 +22,8 @@ public class FXYutGameView implements YutGameView {
         stage.setTitle("윷놀이");
         stage.setResizable(false);
 
-        this.router = new ViewRouter(stage, this, controller);
-        initBoardPanel();
-    }
-
-    @Override
-    public void initBoardPanel(){
-        router.showTitle(); // 앱 실행 시 Title부터 시작
+        this.router = new ViewRouter(stage, this);
+        router.showTitle(this.controller); // 앱 실행 시 Title부터 시작
 
         // Stage를 Scene에 정확히 맞춤
         primaryStage.sizeToScene();
@@ -37,8 +32,18 @@ public class FXYutGameView implements YutGameView {
     }
 
     @Override
+    public void initBoardPanel(){
+        router.showGameBoard();
+    }
+
+    @Override
     public void setController(YutGameController controller) {
         this.controller = controller;
+        router.setController(controller);
+    }
+
+    public YutGameController getController(){
+        return controller;
     }
 
     @Override

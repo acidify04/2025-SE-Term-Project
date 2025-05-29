@@ -8,25 +8,33 @@ import main.java.com.yutgame.view.fx.*;
 public class ViewRouter {
 
     private final Stage primary;
-    private final YutGameController controller;
+    private YutGameController controller;
     private final FXYutGameView fxView;
 
-    public ViewRouter(Stage stage, FXYutGameView fxView, YutGameController controller) {
+    public ViewRouter(Stage stage, FXYutGameView fxView) {
         this.primary = stage;
         this.fxView = fxView;
+    }
+
+    public FXYutGameView getFXView(){
+        return fxView;
+    }
+
+    public void setController(YutGameController controller){
         this.controller = controller;
     }
 
-    public void showTitle() {
-        setScene(new TitleView(this).scene());
+    public void showTitle(YutGameController controller) {
+        setScene(new TitleView(controller, this).scene());
     }
 
-    public void showBoardSelect() {
-        setScene(new BoardSelectView(this, fxView::setBoardChoice).scene());
+    public void showBoardSelect(YutGameController controller) {
+        setScene(new BoardSelectView(controller, this, fxView::setBoardChoice).scene());
     }
 
-    public void showPlayerPieceSelect() {
+    public void showPlayerPieceSelect(YutGameController controller) {
         setScene(new PlayerPieceSelectView(
+                controller,
                 this,
                 fxView::setPlayerCount,
                 fxView::setPieceCount
@@ -34,12 +42,14 @@ public class ViewRouter {
     }
 
     public void showGameBoard() {
+        if(controller == null) controller = fxView.getController();  // 안전장치
         // 보드 타입, 인원 수, 말 개수에 따라 실제 게임 뷰 구성
-        int board = fxView.getBoardChoice();     // 0 : square, 1 : pentagon, 2 : hexagon
-        int players = fxView.getPlayerCount();
-        int pieces = fxView.getPieceCount();
-
-        GameBoardView boardView = new GameBoardView(controller, board, players, pieces);
+        GameBoardView boardView = new GameBoardView(
+                controller,
+                fxView.getBoardChoice(),    // 0 : 사각형, 1 : 오각형, 2 : 육각형
+                fxView.getPlayerCount(),
+                fxView.getPieceCount()
+        );
         setScene(boardView.scene());
     }
 

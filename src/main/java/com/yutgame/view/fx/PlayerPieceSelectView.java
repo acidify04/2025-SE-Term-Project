@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.view.fx.router.ViewRouter;
 
 import java.io.InputStream;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class PlayerPieceSelectView {
+    private YutGameController controller;
 
     public enum CardType {PLAYER, PIECE}
 
@@ -37,9 +39,11 @@ public class PlayerPieceSelectView {
     private final List<StackPane> playerButtons = new ArrayList<>();
     private final List<StackPane> pieceButtons = new ArrayList<>();
 
-    public PlayerPieceSelectView(ViewRouter router,
+    public PlayerPieceSelectView(YutGameController controller,
+                                 ViewRouter router,
                                  Consumer<Integer> onPlayerSelected,
                                  Consumer<Integer> onPieceSelected) {
+        this.controller = controller;
 
         StackPane playertwo   = card("/fx/button/num/num_2.png", 2, CardType.PLAYER);
         StackPane playerthree = card("/fx/button/num/num_3.png", 3, CardType.PLAYER);
@@ -76,12 +80,13 @@ public class PlayerPieceSelectView {
 
         // 버튼들을 적절한 위치로 조정
         ImageView back = clickableImage("/fx/button/btn_back.png",
-                e -> router.showBoardSelect());
+                e -> router.showBoardSelect(controller));
         ImageView next = clickableImage("/fx/button/btn_next.png",
                 e -> {
                     onPlayerSelected.accept(selectedPlayer);  // 선택된 인덱스를 외부로 전달!
                     onPieceSelected.accept(selectedPiece);
-                    router.showGameBoard();
+                    //router.showGameBoard(controller);
+                    router.getFXView().getController().initializeGame();
                 });
         back.setFitWidth(250);
         next.setFitWidth(250);
