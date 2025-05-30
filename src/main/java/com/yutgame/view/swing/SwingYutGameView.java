@@ -79,6 +79,25 @@ public class SwingYutGameView extends JFrame implements YutGameView {
     }
 
     @Override
+    public void setController(YutGameController controller) {
+        this.controller = controller;
+        this.boardPanel = new BoardPanel(controller);
+
+        add(boardPanel, BorderLayout.CENTER);
+        revalidate();  // 레이아웃 다시 계산
+        repaint();     // 화면 갱신
+    }
+
+    // SwingYutGameView.java
+    @Override
+    public void initBoardPanel() {
+        this.boardPanel = new BoardPanel(controller);
+        add(boardPanel, BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    @Override
     public int getPlayerCount() {
         return playerCount;
     }
@@ -278,8 +297,6 @@ public class SwingYutGameView extends JFrame implements YutGameView {
         }
     }
 
-
-
     /**
      * 이동할 말을 선택한다.
      * - 빽도(BAK_DO)일 때는 "뒤로 갈 수 있는 말"만 선택지로 노출
@@ -347,25 +364,6 @@ public class SwingYutGameView extends JFrame implements YutGameView {
                 opts[0]
         );
         return (ch < 0 || ch >= cands.size()) ? null : cands.get(ch);
-    }
-
-    @Override
-    public void setController(YutGameController controller) {
-        this.controller = controller;
-        this.boardPanel = new BoardPanel(controller);
-
-        add(boardPanel, BorderLayout.CENTER);
-        revalidate();  // 레이아웃 다시 계산
-        repaint();     // 화면 갱신
-    }
-
-    // SwingYutGameView.java
-    @Override
-    public void initBoardPanel() {
-        this.boardPanel = new BoardPanel(controller);
-        add(boardPanel, BorderLayout.CENTER);
-        revalidate();
-        repaint();
     }
 
     @Override

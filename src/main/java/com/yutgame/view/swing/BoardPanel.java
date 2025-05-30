@@ -37,6 +37,7 @@ public class BoardPanel extends JPanel {
         this.controller = controller;
     }
 
+    // repaint() 호출 시 자동 호출
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
