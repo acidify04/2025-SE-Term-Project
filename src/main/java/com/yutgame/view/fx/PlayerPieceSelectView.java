@@ -91,6 +91,10 @@ public class PlayerPieceSelectView {
         back.setFitWidth(250);
         next.setFitWidth(250);
 
+        // 처음에는 next를 비활성화 + 흐릿하게
+        next.setDisable(true);
+        next.setOpacity(0.5);
+
         HBox btnLine = new HBox(350, back, next);
         btnLine.setAlignment(Pos.CENTER);
         btnLine.setTranslateY(175);  // 적절한 위치로 조정
@@ -131,6 +135,16 @@ public class PlayerPieceSelectView {
             else selectedPiece = kind;
             //onSelect.accept(kind);
             focus(index, type);
+
+            // ↓↓↓↓↓ [수정] 플레이어 수와 말의 수 모두 선택 시 next 버튼 활성화 + 선명하게
+            if (selectedPlayer != -1 && selectedPiece != -1) {
+                ImageView nextBtn = (ImageView)((HBox)((VBox)((StackPane)pane.getScene().getRoot())
+                        .getChildren().get(2)) // content (VBox)
+                        .getChildren().get(1)) // btnLine (HBox)
+                        .getChildren().get(1); // next button (ImageView)
+                nextBtn.setDisable(false);
+                nextBtn.setOpacity(1.0);
+            }
         });
 
         // 공통 호버 이벤트
@@ -184,7 +198,7 @@ public class PlayerPieceSelectView {
         if (type == CardType.PLAYER) {
             img = safeLoadImage("/fx/set/setPlayer/player_" + (selectedIndex + 2) + ".png");
             playerImage.getChildren().add(img);
-        }else{
+        } else {
             img = safeLoadImage("/fx/set/setPiece/piece_" + (selectedIndex + 2) + ".png");
             pieceImage.getChildren().add(img);
         }
