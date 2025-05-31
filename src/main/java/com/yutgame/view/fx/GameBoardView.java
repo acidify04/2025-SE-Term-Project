@@ -237,7 +237,7 @@ public class GameBoardView {
         repaint(1);
 
         // 선택 적용 (예: 말 선택)
-        applyThrowSelections(results);
+        applyThrowSelections();
     }
 
     /**
@@ -315,11 +315,11 @@ public class GameBoardView {
         repaint(1);
     }
 
-    private void applyThrowSelections(List<YutThrowResult> results) {
+    private void applyThrowSelections() {
         Player currentPlayer = controller.getCurrentPlayer();
 
         // 빽도 단독일 경우, 아직 출발 안한 말만 있을 때 턴 넘김
-        if (results.size() == 1 && results.getFirst() == YutThrowResult.BAK_DO) {
+        if (currentResults.size() == 1 && currentResults.getFirst() == YutThrowResult.BAK_DO) {
             boolean notStarted = controller.getNotStarted(currentPlayer);
 
             if (notStarted) {
@@ -344,46 +344,42 @@ public class GameBoardView {
             }
         }
 
-        if (results.size() > 1) {
-            while (!results.isEmpty()) {
-                // 옵션 리스트 생성
-                String[] options = controller.getChoiceLetters(results);
-                List<String> optionList = Arrays.asList(options);
+        if (currentResults.size() > 1) {
+            System.out.println("currentsize > 1 apply 시작 ");
+            // 옵션 리스트 생성
+            String[] options = controller.getChoiceLetters(currentResults);
+            List<String> optionList = Arrays.asList(options);
 
-                ChoiceDialog<String> dialog = new ChoiceDialog<>(options[0], optionList);
-                dialog.setTitle("이동 선택");
-                dialog.setHeaderText(null);
-                dialog.setContentText("몇 칸 이동하시겠습니까?");
-                Optional<String> result = dialog.showAndWait();
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(options[0], optionList);
+            dialog.setTitle("이동 선택");
+            dialog.setHeaderText(null);
+            dialog.setContentText("몇 칸 이동하시겠습니까?");
+            Optional<String> result = dialog.showAndWait();
 
-                if (result.isEmpty()) continue;
+            if (result.isEmpty()) System.out.println("results가 비어있습니다.");
 
-                String choiceStr = result.get();
-                int choiceIndex = optionList.indexOf(choiceStr);
-                YutThrowResult chosen = results.get(choiceIndex);
+            String choiceStr = result.get();
+            int choiceIndex = optionList.indexOf(choiceStr);
+            YutThrowResult chosen = currentResults.get(choiceIndex);
 
-                boolean notStarted = controller.getNotStarted(currentPlayer);
-                if (chosen == YutThrowResult.BAK_DO && notStarted) {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("경고");
-                    alert.setHeaderText(null);
-                    alert.setContentText("출발하지 않은 상태에서는 빽도를 선택할 수 없습니다.");
-                    alert.showAndWait();
-                    continue;
-                }
-
-                YutThrowResult chosenResult = results.remove(choiceIndex);
-                moveNode(currentPlayer, chosenResult);
-
-                // 현재 선택한 결과 인덱스를 기반으로 PlayerInform 갱신
-                repaint(1);
-
-                if (controller.isGameOver()) {
-                    break;
-                }
+            boolean notStarted = controller.getNotStarted(currentPlayer);
+            if (chosen == YutThrowResult.BAK_DO && notStarted) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("경고");
+                alert.setHeaderText(null);
+                alert.setContentText("출발하지 않은 상태에서는 빽도를 선택할 수 없습니다.");
+                alert.showAndWait();
             }
+
+            moveNode(currentPlayer, chosen);
+
+            // 현재 선택한 결과 인덱스를 기반으로 PlayerInform 갱신
+            repaint(1);
+
         } else {
-            moveNode(currentPlayer, results.get(0));
+            System.out.println("currentsize = 1 apply 시작 ");
+            System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
+            moveNode(currentPlayer, currentResults.get(0));
         }
     }
 
@@ -411,9 +407,11 @@ public class GameBoardView {
     }
 
     private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
-        System.out.println("moveNode 시작");
+        System.out.println("moveNode 시작 - currentResults : " + currentResults.size());
 
         selectPiece(currentPlayer, chosenResult, selected -> {
+            System.out.println("select시작");
+            System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
             if (selected == null) {
                 System.out.println("selected is null");
                 return;
@@ -454,6 +452,10 @@ public class GameBoardView {
 
             if (currentResults.size() == 0) {
                 goNext();
+            } else {
+                System.out.println("apply");
+                System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
+                Platform.runLater(() -> applyThrowSelections());
             }
         });
     }
@@ -462,7 +464,11 @@ public class GameBoardView {
      * new Piece 버튼 클릭 시 실행
      */
     public void onNewPieceButtonClicked() {
+        System.out.println("onNewPieceButtonClicked 인스턴스 해시: " + this);
+        System.out.println("new 클릭");
+        System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
         if (waitingPieceChoices != null && !waitingPieceChoices.isEmpty() && pieceSelectedCallback != null) {
+            System.out.println("콜백시도");
             pieceSelectedCallback.accept(waitingPieceChoices.get(0));
             clearPieceSelectionState();
         }
@@ -472,9 +478,11 @@ public class GameBoardView {
      * 노드 위의 말 선택 시 실행
      */
     public void onPieceClicked(Piece clickedPiece) {
+        System.out.println("클릭한 말: " + clickedPiece.getCurrentNode());
+        System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
         if (waitingPieceChoices != null && pieceSelectedCallback != null &&
                 waitingPieceChoices.contains(clickedPiece)) {
-
+            System.out.println("콜백시도");
             pieceSelectedCallback.accept(clickedPiece);
             clearPieceSelectionState();
         }
@@ -486,8 +494,10 @@ public class GameBoardView {
     }
 
     public void selectPiece(Player player, YutThrowResult chosenResult, Consumer<Piece> onPieceSelected) {
+        System.out.println("onNewPieceButtonClicked 인스턴스 해시: " + this);
         PieceDecisionResult pieceDecisionResult = controller.getPieceDecisions(player, chosenResult);
         List<Piece> choices = pieceDecisionResult.choices();
+        System.out.println("choices: " + choices.size());
         List<String> pieceDecisions = pieceDecisionResult.decisions();
 
         if (controller.allPiecesFinished(player)) {
@@ -531,6 +541,7 @@ public class GameBoardView {
 
         // 선택 가능한 피스 저장 및 콜백 설정
         this.waitingPieceChoices = choices;
+        System.out.println("선택 가능한 말: " + waitingPieceChoices.size());
         this.pieceSelectedCallback = onPieceSelected;
     }
 
