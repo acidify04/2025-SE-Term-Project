@@ -21,7 +21,6 @@ public class YutGameController {
     private YutGame game;
     private YutGameView view;
 
-
     public YutGameController() {
         this.game = new YutGame();
         // SwingView 선택 시

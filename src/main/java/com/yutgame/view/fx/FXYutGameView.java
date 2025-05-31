@@ -78,7 +78,7 @@ public class FXYutGameView implements YutGameView {
 
     @Override
     public void repaintBoard() {
-        router.getGameBoardView().getBoardPane().drawBoard(0);
+        router.getGameBoardView().getBoardPane().drawBoard();
     }
 
     @Override

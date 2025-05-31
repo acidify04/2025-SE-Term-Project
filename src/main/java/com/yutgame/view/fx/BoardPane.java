@@ -9,11 +9,10 @@ import javafx.scene.shape.Line;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.model.BoardNode;
 import main.java.com.yutgame.model.Piece;
-import main.java.com.yutgame.model.Player;
 
-import java.awt.*;
-import java.util.List;
-
+/**
+ * 실제 윷놀이 판
+ */
 public class BoardPane extends Pane {
 
     private static final int NODE_SIZE = 35;
@@ -21,21 +20,14 @@ public class BoardPane extends Pane {
     private static final int PIECE_SIZE_Y = 55;
 
     private final YutGameController controller;
-    private final GameBoardView gameBoardView;
 
-    public BoardPane(YutGameController controller, GameBoardView gameBoardView) {
+    public BoardPane(YutGameController controller) {
         this.controller = controller;
-        this.gameBoardView = gameBoardView;
-        drawBoard(1);
+        drawBoard();
     }
 
-    public void drawBoard(int isFirst) {
+    public void drawBoard() {
         this.getChildren().clear();
-
-        System.out.println("drawBoard");
-        if (isFirst == 0) {
-            drawScoreBoard();
-        }
 
         // 노드 간 연결선
         for (BoardNode node : controller.getBoard().getNodes()) {
@@ -58,18 +50,28 @@ public class BoardPane extends Pane {
         }
     }
 
-    private void drawScoreBoard() {
-        List<Player> players = controller.getPlayers();
-        for (Player p : players) {
-            System.out.println("player: " + players.size() + "플레이어의 피스 개수 : " + p.getPieces().size() + "끝난 피스 개수 : " + p.getFinishedCount());
-            gameBoardView.updatePlayerInforms(players.size(), p.getPieces().size(), p.getFinishedCount());
-        }
-    }
-
     private void drawNode(BoardNode node) {
-        Circle circle = new Circle(node.getX() + NODE_SIZE / 2, node.getY() + NODE_SIZE / 2, NODE_SIZE / 2);
-        circle.setFill(Color.LIGHTGRAY);
-        circle.setStroke(Color.BLACK);
+        String id = node.getId();
+
+        double radius;
+
+        // default가 아닌 경우 노드 크기를 40으로
+        switch (id) {
+            case "A", "B", "C", "D", "E", "START_NODE", "CENTER" -> radius = 40 / 2.0;
+            default -> radius = NODE_SIZE / 2.0; // 기본 35
+        }
+
+        Circle circle = new Circle(node.getX() + radius, node.getY() + radius, radius);
+        switch (id) {
+            case "A" -> circle.setFill(Color.web("FF7A7C"));
+            case "B" -> circle.setFill(Color.web("7AABFF"));
+            case "C" -> circle.setFill(Color.web("7AFF87"));
+            case "D" -> circle.setFill(Color.web("FF7AFD"));
+            case "E" -> circle.setFill(Color.web("9548E7"));
+            case "START_NODE" -> circle.setFill(Color.web("FFF67A"));
+            case "CENTER" -> circle.setFill(Color.LIGHTSLATEGREY);
+            default -> circle.setFill(Color.LIGHTGRAY);
+        }
         this.getChildren().add(circle);
     }
 

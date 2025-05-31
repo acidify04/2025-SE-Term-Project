@@ -11,6 +11,7 @@ public class Player {
 
     private String name;
     private List<Piece> pieces;
+    private int nonStartPiecesNum;
     private boolean isWinner;
     private int playerIndex;
 
@@ -37,6 +38,13 @@ public class Player {
 
     public void setWinner(boolean winner) {
         this.isWinner = winner;
+    }
+
+    public int getNonStartPiecesNum() {
+        this.nonStartPiecesNum = (int) pieces.stream()
+                .filter(piece -> !piece.getIsStarted())
+                .count();
+        return nonStartPiecesNum;
     }
 
     /**
