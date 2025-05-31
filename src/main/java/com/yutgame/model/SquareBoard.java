@@ -19,7 +19,7 @@ public class SquareBoard implements YutBoard {
         // 노드 생성
         List<BoardNode> allNodes = new ArrayList<>();
 
-        int margin = 50;
+        int margin = 10;
         int boardSize = 380; // 380 - 2*margin
         int center = margin + boardSize / 2;  // 190
         int minX = margin;      // 50

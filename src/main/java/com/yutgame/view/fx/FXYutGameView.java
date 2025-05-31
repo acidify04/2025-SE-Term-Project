@@ -62,17 +62,14 @@ public class FXYutGameView implements YutGameView {
     }
 
     public void setPlayerCount(int count) {
-        System.out.println("선택된 플레이어 수 : "+count);
         this.playerCount = count;
     }
 
     public void setPieceCount(int count) {
-        System.out.println("선택된 말 개수 : "+count);
         this.pieceCount = count;
     }
 
     public void setBoardChoice(int boardChoice) {
-        System.out.println("선택된 보드 : "+boardChoice);   // 0 : square, 1 : pentagon, 2 : hexagon
         this.boardChoice = boardChoice;
     }
 

@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
 
 public class GameBoardView {
     private YutGameController controller;
@@ -48,6 +51,12 @@ public class GameBoardView {
 
     private List<ImageView> buttonImg = new ArrayList<>();
     private List<StackPane> buttonPane = new ArrayList<>();
+
+    // 현재 사용자에게 보여주고 있는 선택 가능한 말 목록
+    private List<Piece> waitingPieceChoices;
+
+    // 사용자가 Piece를 클릭했을 때 호출할 콜백 함수
+    private Consumer<Piece> pieceSelectedCallback;
 
     /**
      * 윷놀이판 초기 세팅
@@ -79,11 +88,12 @@ public class GameBoardView {
         }
         board.setTranslateY(42);
         board.setPreserveRatio(false);
+        //board.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         // 노드 그리기
-        this.boardPane = new BoardPane(controller);
-        boardPane.setTranslateX(177);
-        boardPane.setTranslateY(63);
+        this.boardPane = new BoardPane(controller, this);
+        boardPane.setTranslateY(35);
+        //boardPane.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         // Players, Pieces, ResultPane 초기화
         for (int i = 0; i < playerCount; i++) {
@@ -98,32 +108,37 @@ public class GameBoardView {
         // playerInform 위치 설정
         HBox upPlayers = new HBox(500, allPlayerInforms.get(0), allPlayerInforms.get(1));
         upPlayers.setAlignment(Pos.CENTER);
-        upPlayers.setTranslateY(0);
+        upPlayers.setTranslateY(5);
+        //upPlayers.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         HBox underPlayers = new HBox();
         if (playerCount == 3){
             underPlayers.getChildren().add(allPlayerInforms.get(2));
             underPlayers.setTranslateX(35);
-            underPlayers.setTranslateY(0);
+            underPlayers.setTranslateY(-30);
         }else if (playerCount == 4){
             underPlayers.getChildren().addAll(allPlayerInforms.get(2), allPlayerInforms.get(3));
             underPlayers.setSpacing(500);
             upPlayers.setAlignment(Pos.CENTER);
             underPlayers.setTranslateX(35);
-            underPlayers.setTranslateY(0);
+            underPlayers.setTranslateY(-30);
         }
+        //underPlayers.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         VBox Players = new VBox(100, upPlayers, underPlayers);
         Players.setAlignment(Pos.CENTER);
-
-        //this.playerUIRoot = drawPlayerInforms(playerCount, pieceCount, 0);
+        //Players.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         // 윷 던지기 버튼 그리기
         StackPane randomThrow = drawthrowButton("/fx/button/game/randomBtn.png", true);
         StackPane manualThrow = drawthrowButton("/fx/button/game/selectBtn.png", false);
+        //randomThrow.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+        //manualThrow.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         HBox Buttons = new HBox(randomThrow, manualThrow);
-        Buttons.setTranslateX(470);
-        Buttons.setTranslateY(30);
+        Buttons.setTranslateX(120);
+        Buttons.setTranslateY(-235);
+        Buttons.setMaxSize(176, 45);
+        //Buttons.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 
         // 배경 이미지 그리기
         ImageView bgImage = switch (playerCount) {
@@ -136,7 +151,7 @@ public class GameBoardView {
         bgImage.setFitHeight(570);
         bgImage.setPreserveRatio(false);
 
-        StackPane root = new StackPane(bgImage, Players, board, boardPane, Buttons);
+        StackPane root = new StackPane(bgImage, board, Players, boardPane,Buttons);
         this.scene = new Scene(root, 870, 570);
     }
 
@@ -322,6 +337,7 @@ public class GameBoardView {
                 }
                 currentPlayerIndex = controller.getCurrentPlayer().getIndex();
                 currentResults.clear();
+                System.out.println("출발하지 않은 상태에서 턴 넘기기 nextTurn");
                 repaint(3);
                 System.out.println("플레이어 바뀜" + currentPlayerIndex);
                 return;
@@ -369,7 +385,9 @@ public class GameBoardView {
         } else {
             moveNode(currentPlayer, results.get(0));
         }
+    }
 
+    private void goNext(){
         if (controller.isGameOver()) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("게임 종료");
@@ -378,6 +396,7 @@ public class GameBoardView {
             alert.showAndWait();
             Platform.exit(); // JavaFX용 종료
         } else {
+            System.out.println("goNext()에서 nextTurn");
             controller.nextTurn();
             // 기존 highlight 지우기
             if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
@@ -392,11 +411,15 @@ public class GameBoardView {
     }
 
     private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
-        Piece selected = selectPiece(currentPlayer, chosenResult);
+        System.out.println("moveNode 시작");
 
-        if (selected != null) {
+        selectPiece(currentPlayer, chosenResult, selected -> {
+            if (selected == null) {
+                System.out.println("selected is null");
+                return;
+            }
+            System.out.println("getSteps 시작");
             int steps = controller.getSteps(chosenResult);
-
             BoardNode curr = selected.getCurrentNode();
             if (curr == null) curr = controller.getBoard().getStartNode();
 
@@ -404,6 +427,7 @@ public class GameBoardView {
                 List<BoardNode> prevs = controller.getBoard().getPossiblePreviousNodes(curr);
                 BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동", -1);
                 if (dest != null)
+                    System.out.println("movePiece 시작");
                     controller.movePiece(selected, dest, controller.getContainsStartNode());
             } else {
                 List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
@@ -426,14 +450,45 @@ public class GameBoardView {
             currentResults.remove(chosenResult);
             repaint(1);
             repaint(2);
-            boardPane.drawBoard(); // JavaFX에서는 직접 만든 메서드로 redraw
+            boardPane.drawBoard();
+
+            if (currentResults.size() == 0) {
+                goNext();
+            }
+        });
+    }
+
+    /**
+     * new Piece 버튼 클릭 시 실행
+     */
+    public void onNewPieceButtonClicked() {
+        if (waitingPieceChoices != null && !waitingPieceChoices.isEmpty() && pieceSelectedCallback != null) {
+            pieceSelectedCallback.accept(waitingPieceChoices.get(0));
+            clearPieceSelectionState();
         }
     }
 
-    private Piece selectPiece(Player player, YutThrowResult chosenResult) {
+    /**
+     * 노드 위의 말 선택 시 실행
+     */
+    public void onPieceClicked(Piece clickedPiece) {
+        if (waitingPieceChoices != null && pieceSelectedCallback != null &&
+                waitingPieceChoices.contains(clickedPiece)) {
+
+            pieceSelectedCallback.accept(clickedPiece);
+            clearPieceSelectionState();
+        }
+    }
+
+    private void clearPieceSelectionState() {
+        waitingPieceChoices = null;
+        pieceSelectedCallback = null;
+    }
+
+    public void selectPiece(Player player, YutThrowResult chosenResult, Consumer<Piece> onPieceSelected) {
         PieceDecisionResult pieceDecisionResult = controller.getPieceDecisions(player, chosenResult);
-        List<Piece> choices = pieceDecisionResult.choices();     // 이동 가능한 pieces 리스트
-        List<String> pieceDecisions = pieceDecisionResult.decisions();   //
+        List<Piece> choices = pieceDecisionResult.choices();
+        List<String> pieceDecisions = pieceDecisionResult.decisions();
 
         if (controller.allPiecesFinished(player)) {
             controller.checkWin();
@@ -445,46 +500,40 @@ public class GameBoardView {
                 winAlert.showAndWait();
                 Platform.exit();
             }
-            return null;
-        } else {
-            // 선택 가능한 말이 없음 → 메시지 출력 후 턴 넘김
-            if (pieceDecisions.isEmpty()) {
-                String msg = controller.checkBaekdo(chosenResult)
-                        ? "시작지점에서 빽도를 사용하실 수 없습니다."
-                        : "이 플레이어는 이동 가능한 말이 없습니다.";
-
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("선택 불가");
-                alert.setHeaderText(null);
-                alert.setContentText(msg);
-                alert.showAndWait();
-
-                controller.nextTurn();
-                // 기존 highlight 지우기
-                if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
-                    PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
-                    playerInform.setIsTurn(false);
-                }
-                currentPlayerIndex = controller.getCurrentPlayer().getIndex();
-                System.out.println("플레이어 바뀜" + currentPlayerIndex);
-                currentResults.clear();
-                repaint(3);
-                return null;
-            }
-
-            // 실제 선택창
-            ChoiceDialog<String> dialog = new ChoiceDialog<>(pieceDecisions.getFirst(), pieceDecisions);
-            dialog.setTitle("말 선택");
-            dialog.setHeaderText(null);
-            dialog.setContentText("이동할 말을 선택하세요 (" + player.getName() + "):");
-
-            Optional<String> result = dialog.showAndWait();
-            if (result.isEmpty()) return null;
-
-            int choiceIndex = pieceDecisions.indexOf(result.get());
-            return (choiceIndex < 0 || choiceIndex >= choices.size()) ? null : choices.get(choiceIndex);
+            onPieceSelected.accept(null); // 아무 것도 선택할 수 없는 경우
+            return;
         }
+
+        if (pieceDecisions.isEmpty()) {
+            String msg = controller.checkBaekdo(chosenResult)
+                    ? "시작지점에서 빽도를 사용하실 수 없습니다."
+                    : "이 플레이어는 이동 가능한 말이 없습니다.";
+
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("선택 불가");
+            alert.setHeaderText(null);
+            alert.setContentText(msg);
+            alert.showAndWait();
+
+            System.out.println("이동가능한 말 없음 : nextTurn");
+            controller.nextTurn();
+            if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+                allPlayerInforms.get(currentPlayerIndex - 1).setIsTurn(false);
+            }
+            currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+            currentResults.clear();
+            System.out.println("이동가능한 말 없음");
+            repaint(3);
+
+            onPieceSelected.accept(null); // 선택할 수 없음 → null 반환
+            return;
+        }
+
+        // 선택 가능한 피스 저장 및 콜백 설정
+        this.waitingPieceChoices = choices;
+        this.pieceSelectedCallback = onPieceSelected;
     }
+
 
     private BoardNode chooseDestination(List<BoardNode> cands, String title, int finishIndex) {
         if (cands.size() == 1) return cands.getFirst();
@@ -568,15 +617,16 @@ public class GameBoardView {
                         playerInform.setYutResults(currentResults);
                         break;
                     case 2:
+                        System.out.println("setNonStartPieceNum");
                         for (int i=0; i < allPlayerInforms.size(); i++){
                             Player player = controller.getGame().getPlayers().get(i);
                             int nonStartPieceNum = player.getNonStartPiecesNum();
-                            System.out.println(i + "번째 플레이어의 nonStart" + nonStartPieceNum);
                             PlayerInform eachPlayer = allPlayerInforms.get(i);
                             eachPlayer.setNonStartPieceNum(nonStartPieceNum);
                         }
                         break;
                     case 3:
+                        System.out.println("턴 넘어감 setIsTurn");
                         playerInform.setIsTurn(true);
                         break;
                 }
