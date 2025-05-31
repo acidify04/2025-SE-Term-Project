@@ -10,6 +10,7 @@ public class ViewRouter {
     private final Stage primary;
     private YutGameController controller;
     private final FXYutGameView fxView;
+    private GameBoardView gameBoardView;
 
     public ViewRouter(Stage stage, FXYutGameView fxView) {
         this.primary = stage;
@@ -50,6 +51,7 @@ public class ViewRouter {
                 fxView.getPlayerCount(),
                 fxView.getPieceCount()
         );
+        this.gameBoardView = boardView;
         setScene(boardView.scene());
     }
 
@@ -61,5 +63,9 @@ public class ViewRouter {
         primary.setScene(scene);
         primary.sizeToScene();
         primary.centerOnScreen();
+    }
+
+    public GameBoardView getGameBoardView(){
+        return gameBoardView;
     }
 }

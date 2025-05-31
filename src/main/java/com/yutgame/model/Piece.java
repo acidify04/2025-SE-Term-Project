@@ -14,6 +14,7 @@ public class Piece {
 
     private Player owner;         // 소유 플레이어
     private BoardNode currentNode; // 현재 노드
+    private boolean isStarted;
     private boolean isFinished;    // 골인 여부
     private List<Piece> groupedPieces; // 업기(그룹)된 말 목록
     private boolean isGrouped;  //그룹핑 여부
@@ -46,6 +47,15 @@ public class Piece {
 
     public List<Piece> getGroupedPieces() {
         return groupedPieces;
+    }
+
+    public boolean getIsStarted(){
+        if (this.currentNode == null) {
+            this.isStarted = false;
+        }else{
+            this.isStarted = true;
+        }
+        return this.isStarted;
     }
 
     /**

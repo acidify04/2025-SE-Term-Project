@@ -19,41 +19,40 @@ public class SquareBoard implements YutBoard {
         // 노드 생성
         List<BoardNode> allNodes = new ArrayList<>();
 
-        // 600x600 좌표 위치 설정
         int margin = 50;
-        int boardSize = 500;
-        int center = margin + boardSize/2;  // 300
-        int minX = margin;     // 50
-        int maxX = margin+500; // 550
-        int minY = margin;     // 50
-        int maxY = margin+500; // 550
+        int boardSize = 380; // 380 - 2*margin
+        int center = margin + boardSize / 2;  // 190
+        int minX = margin;      // 50
+        int maxX = margin + boardSize; // 330
+        int minY = margin;
+        int maxY = margin + boardSize;
 
-        BoardNode startNode  = new BoardNode("START_NODE", maxX, maxY);  // (550,550)
-        BoardNode cornerNE   = new BoardNode("A", maxX, minY);   // (550,50)
-        BoardNode cornerNW   = new BoardNode("B", minX, minY);   // (50,50)
-        BoardNode cornerSW   = new BoardNode("C", minX, maxY);   // (50,550)
+        BoardNode startNode  = new BoardNode("START_NODE", maxX, maxY);
+        BoardNode cornerNE   = new BoardNode("A", maxX, minY);
+        BoardNode cornerNW   = new BoardNode("B", minX, minY);
+        BoardNode cornerSW   = new BoardNode("C", minX, maxY);
         BoardNode centerNode = new BoardNode("CENTER", center, center);
 
-        // 노드 이름 설정 및 노드 (테두리)
-        BoardNode e1 = new BoardNode("E1", maxX, maxY - 100);
-        BoardNode e2 = new BoardNode("E2", maxX, maxY - 200);
-        BoardNode e3 = new BoardNode("E3", maxX, maxY - 300);
-        BoardNode e4 = new BoardNode("E4", maxX, maxY - 400);
+        // 테두리 노드 (각 70px 간격)
+        BoardNode e1 = new BoardNode("E1", maxX, maxY - 75);
+        BoardNode e2 = new BoardNode("E2", maxX, maxY - 150);
+        BoardNode e3 = new BoardNode("E3", maxX, maxY - 225);
+        BoardNode e4 = new BoardNode("E4", maxX, maxY - 300);
 
-        BoardNode n1 = new BoardNode("N1", maxX - 100, minY);
-        BoardNode n2 = new BoardNode("N2", maxX - 200, minY);
-        BoardNode n3 = new BoardNode("N3", maxX - 300, minY);
-        BoardNode n4 = new BoardNode("N4", maxX - 400, minY);
+        BoardNode n1 = new BoardNode("N1", maxX - 75, minY);
+        BoardNode n2 = new BoardNode("N2", maxX - 150, minY);
+        BoardNode n3 = new BoardNode("N3", maxX - 225, minY);
+        BoardNode n4 = new BoardNode("N4", maxX - 300, minY);
 
-        BoardNode w1 = new BoardNode("W1", minX, minY + 100);
-        BoardNode w2 = new BoardNode("W2", minX, minY + 200);
-        BoardNode w3 = new BoardNode("W3", minX, minY + 300);
-        BoardNode w4 = new BoardNode("W4", minX, minY + 400);
+        BoardNode w1 = new BoardNode("W1", minX, minY + 75);
+        BoardNode w2 = new BoardNode("W2", minX, minY + 150);
+        BoardNode w3 = new BoardNode("W3", minX, minY + 225);
+        BoardNode w4 = new BoardNode("W4", minX, minY + 300);
 
-        BoardNode s1 = new BoardNode("S1", minX + 100, maxY);
-        BoardNode s2 = new BoardNode("S2", minX + 200, maxY);
-        BoardNode s3 = new BoardNode("S3", minX + 300, maxY);
-        BoardNode s4 = new BoardNode("S4", minX + 400, maxY);
+        BoardNode s1 = new BoardNode("S1", minX + 75, maxY);
+        BoardNode s2 = new BoardNode("S2", minX + 150, maxY);
+        BoardNode s3 = new BoardNode("S3", minX + 225, maxY);
+        BoardNode s4 = new BoardNode("S4", minX + 300, maxY);
 
         // 노드 이름 설정 및 생성 (지름길)
         BoardNode ne1 = new BoardNode("NE1", (cornerNE.getX()*2 + centerNode.getX())/3,

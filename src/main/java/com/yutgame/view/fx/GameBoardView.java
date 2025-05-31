@@ -1,8 +1,14 @@
 package main.java.com.yutgame.view.fx;
 
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -10,16 +16,24 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.util.Duration;
 import main.java.com.yutgame.controller.YutGameController;
+import main.java.com.yutgame.dto.PieceDecisionResult;
 import main.java.com.yutgame.model.BoardNode;
+import main.java.com.yutgame.model.Piece;
+import main.java.com.yutgame.model.Player;
+import main.java.com.yutgame.model.YutThrowResult;
 
-import java.awt.*;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class GameBoardView {
     private YutGameController controller;
+    private BoardPane boardPane;
+    private List<PlayerInform> allPlayerInforms = new ArrayList<>();
 
     private final Scene scene;
 
@@ -27,29 +41,19 @@ public class GameBoardView {
         return scene;
     }
 
-    private enum ThrowType {RANDOM, MANUAL};
-    private ThrowType selectedThrow = ThrowType.RANDOM;
+    private boolean isRandomThrow = false;
+    private int currentPlayerIndex = 1;
+    private List<YutThrowResult> currentResults = new ArrayList<>();
+    private int currentPlayerPieceNum = 0;
 
-    private final List<StackPane> allPlayers = new ArrayList<>();
-    private List<StackPane> allPieces = new ArrayList<>();
-    private List<VBox> playerPieces = new ArrayList<>();
     private List<ImageView> buttonImg = new ArrayList<>();
     private List<StackPane> buttonPane = new ArrayList<>();
-    private List<StackPane> allResultPanes = new ArrayList<>();
 
+    /**
+     * 윷놀이판 초기 세팅
+     */
     public GameBoardView(YutGameController controller, int boardType, int playerCount, int pieceCount) {
         this.controller = controller;
-
-        // Players, Pieces 그리기
-        VBox Players = drawPlayers(playerCount, pieceCount);
-
-        // 윷 던지기 버튼 그리기
-        StackPane randomThrow = throwButton("/fx/button/game/randomBtn.png", ThrowType.RANDOM);
-        StackPane manualThrow = throwButton("/fx/button/game/selectBtn.png", ThrowType.MANUAL);
-
-        HBox Buttons = new HBox(randomThrow, manualThrow);
-        Buttons.setTranslateX(470);
-        Buttons.setTranslateY(30);
 
         // 게임판 이미지 그리기
         ImageView board = switch (boardType) {
@@ -77,7 +81,49 @@ public class GameBoardView {
         board.setPreserveRatio(false);
 
         // 노드 그리기
+        this.boardPane = new BoardPane(controller);
+        boardPane.setTranslateX(177);
+        boardPane.setTranslateY(63);
 
+        // Players, Pieces, ResultPane 초기화
+        for (int i = 0; i < playerCount; i++) {
+            PlayerInform playerInform;
+            if (i==0){
+                playerInform = new PlayerInform(controller, this, true, i, pieceCount, pieceCount, null);
+            }else{
+                playerInform = new PlayerInform(controller, this, false, i, pieceCount, pieceCount, null);
+            }
+            allPlayerInforms.add(playerInform);
+        }
+        // playerInform 위치 설정
+        HBox upPlayers = new HBox(500, allPlayerInforms.get(0), allPlayerInforms.get(1));
+        upPlayers.setAlignment(Pos.CENTER);
+        upPlayers.setTranslateY(0);
+
+        HBox underPlayers = new HBox();
+        if (playerCount == 3){
+            underPlayers.getChildren().add(allPlayerInforms.get(2));
+            underPlayers.setTranslateX(35);
+            underPlayers.setTranslateY(0);
+        }else if (playerCount == 4){
+            underPlayers.getChildren().addAll(allPlayerInforms.get(2), allPlayerInforms.get(3));
+            underPlayers.setSpacing(500);
+            upPlayers.setAlignment(Pos.CENTER);
+            underPlayers.setTranslateX(35);
+            underPlayers.setTranslateY(0);
+        }
+        VBox Players = new VBox(100, upPlayers, underPlayers);
+        Players.setAlignment(Pos.CENTER);
+
+        //this.playerUIRoot = drawPlayerInforms(playerCount, pieceCount, 0);
+
+        // 윷 던지기 버튼 그리기
+        StackPane randomThrow = drawthrowButton("/fx/button/game/randomBtn.png", true);
+        StackPane manualThrow = drawthrowButton("/fx/button/game/selectBtn.png", false);
+
+        HBox Buttons = new HBox(randomThrow, manualThrow);
+        Buttons.setTranslateX(470);
+        Buttons.setTranslateY(30);
 
         // 배경 이미지 그리기
         ImageView bgImage = switch (playerCount) {
@@ -90,98 +136,15 @@ public class GameBoardView {
         bgImage.setFitHeight(570);
         bgImage.setPreserveRatio(false);
 
-        StackPane root = new StackPane(bgImage, Players, board, Buttons);
+        StackPane root = new StackPane(bgImage, Players, board, boardPane, Buttons);
         this.scene = new Scene(root, 870, 570);
     }
 
-    //private StackPane drawNode (BoardNode node){
-
-    //}
-
-    //private StackPane drawPieces(BoardNode node) {
-
-    //}
-
-    private VBox drawPlayers (int playerCount, int pieceCount){
-        // 각 캐릭터 이미지, 말 이미지, 윷 결과판 이미지 생성
-        for (int i = 0; i < playerCount; i++) {
-            int playerNum = i + 1;
-            ImageView img = safeLoadImage("/fx/player/player_" + playerNum + ".png");
-            img.setFitWidth(100);
-            img.setFitHeight(100);
-            img.setPreserveRatio(false);
-            img.setSmooth(true);
-            StackPane player = new StackPane(img);
-            allPlayers.add(player);
-
-            StackPane pieces = new StackPane();
-            pieces.setPrefSize(143, 63);
-            for (int j = 0; j < pieceCount; j++) {
-                ImageView pieceImg = safeLoadImage("/fx/piece/piece_" + playerNum + ".png");
-                pieceImg.setFitWidth(28);
-                pieceImg.setFitHeight(38);
-                pieceImg.setPreserveRatio(false);
-                pieceImg.setSmooth(true);
-
-                // 중앙 정렬을 유지하면서 좌우로 퍼지게
-                double offset = (j - (pieceCount - 1) / 2.0) * 30;
-                pieceImg.setTranslateX(offset);
-
-                pieces.getChildren().add(pieceImg);
-            }
-            allPieces.add(pieces);
-
-            // 윷 결과판
-            ImageView pane = safeLoadImage("/fx/result/blank.png");
-            pane.setFitWidth(153);
-            pane.setFitHeight(38);
-            pane.setPreserveRatio(false);
-            pane.setSmooth(true);
-            StackPane resultPane = new StackPane(pane);
-            resultPane.setPrefSize(153, 38);
-            allResultPanes.add(resultPane);
-        }
-
-        // 사용자와 말, 윷 결과판 수직박스로 묶기
-        for (int i = 0; i < playerCount; i++) {
-            if (i<=1){   // 윗 줄은 플레이어 이미지가 위로 오게
-                VBox connect = new VBox(allPlayers.get(i), allPieces.get(i), allResultPanes.get(i));
-                connect.setSpacing(10);
-                playerPieces.add(connect);
-            }else if (i>1){   // 아래 줄은 피스 이미지가 위로 오게
-                VBox connect = new VBox(allResultPanes.get(i), allPieces.get(i), allPlayers.get(i));
-                connect.setSpacing(10);
-                playerPieces.add(connect);
-            }
-            else{
-                System.out.println("플레이어 수 선택 오류");
-            }
-        }
-
-        // 사용자 캐릭터 이미지
-        HBox upPlayers = new HBox(500, playerPieces.get(0), playerPieces.get(1));
-        upPlayers.setAlignment(Pos.CENTER);
-        upPlayers.setTranslateY(0);
-
-        HBox underPlayers = new HBox();
-        if (playerCount == 3){
-            underPlayers.getChildren().add(playerPieces.get(2));
-            underPlayers.setTranslateX(35);
-            underPlayers.setTranslateY(0);
-        }else if (playerCount == 4){
-            underPlayers.getChildren().addAll(playerPieces.get(2), playerPieces.get(3));
-            underPlayers.setSpacing(500);
-            upPlayers.setAlignment(Pos.CENTER);
-            underPlayers.setTranslateX(35);
-            underPlayers.setTranslateY(0);
-        }
-        VBox Players = new VBox(100, upPlayers, underPlayers);
-        Players.setAlignment(Pos.CENTER);
-
-        return Players;
+    public BoardPane getBoardPane(){
+        return boardPane;
     }
 
-    private StackPane throwButton (String imagePath, ThrowType type){
+    private StackPane drawthrowButton (String imagePath, boolean isRandom){
         ImageView img = safeLoadImage(imagePath);
         img.setFitWidth(87);
         img.setFitHeight(43);
@@ -196,12 +159,25 @@ public class GameBoardView {
         // 공통 클릭 이벤트
         int index = buttonImg.size() - 1;
         pane.setOnMouseClicked(e -> {
-            selectedThrow = type;
             focus(index);
-            if (type == ThrowType.RANDOM) {
-                controller.getRandomYut();
+            if (isRandom) {
+                YutThrowResult selected = controller.getRandomYut();
+                processAllThrows(selected);
             }else{
-                // TODO 컨트롤러랑 연결 부분
+                // 지정 윷 던지기
+                // TODO 선택 창 만들기
+                List<String> options = List.of("빽도", "도", "개", "걸", "윷", "모");
+                ChoiceDialog<String> dialog = new ChoiceDialog<>("도", options);
+                dialog.setTitle("지정 윷 던지기");
+                dialog.setHeaderText(null);
+                dialog.setContentText("결과를 선택하세요:");
+
+                Optional<String> result = dialog.showAndWait();
+                result.ifPresent(choiceStr -> {
+                    int choiceIndex = options.indexOf(choiceStr);
+                    YutThrowResult selected = controller.getSetYut(choiceIndex);
+                    processAllThrows(selected);
+                });
             }
         });
 
@@ -225,12 +201,322 @@ public class GameBoardView {
         return pane;
     }
 
+    /**
+     * 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환 (컨트롤러 이용)
+     */
+    private void processAllThrows(YutThrowResult firstResult) {
+        List<YutThrowResult> results = controller.collectThrowResults(
+                firstResult,
+                isRandomThrow,
+                this::getSetYutResult,
+                this::showResult,
+                () -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("다시 던지기");
+                    alert.setHeaderText(null);
+                    alert.setContentText("윷을 한 번 더 던지세요.");
+                    alert.showAndWait();
+                }
+        );
+        // 현재 플레이어 인덱스를 기반으로 PlayerInform 갱신
+        repaint(1);
+
+        // 선택 적용 (예: 말 선택)
+        applyThrowSelections(results);
+    }
+
+    /**
+     * 윷 계속 던져서 결과 모으기
+     */
+    private YutThrowResult getSetYutResult() {
+        List<String> options = List.of("빽도", "도", "개", "걸", "윷", "모");
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("도", options);
+        dialog.setTitle("지정 윷 던지기");
+        dialog.setHeaderText(null);
+        dialog.setContentText("결과를 선택하세요:");
+
+        Optional<String> result = dialog.showAndWait();
+        String choiceStr = result.orElse("도");  // 아무 것도 선택하지 않으면 기본값 "도"
+
+        YutThrowResult sel = switch (choiceStr) {
+            case "빽도" -> YutThrowResult.BAK_DO;
+            case "도"   -> YutThrowResult.DO;
+            case "개"   -> YutThrowResult.GAE;
+            case "걸"   -> YutThrowResult.GEOL;
+            case "윷"   -> YutThrowResult.YUT;
+            case "모"   -> YutThrowResult.MO;
+            default     -> YutThrowResult.DO; // fallback
+        };
+        controller.throwYutManual(sel);
+        repaint(1);
+        return sel;
+    }
+
+    /**
+     * 윷 결과 표시
+     */
+    private void showResult(YutThrowResult result) {
+        // 배경판
+        ImageView background = safeLoadImage("/fx/result/yutpane.png");
+        background.setFitWidth(500);
+        background.setFitHeight(500);
+        background.setPreserveRatio(false);
+
+        // GIF 이미지 (윷 던지기 애니메이션)
+        ImageView gifView = switch (result) {
+            case DO -> new ImageView(new Image(getClass().getResource("/fx/result/resultDo.gif").toExternalForm()));
+            case GAE -> new ImageView(new Image(getClass().getResource("/fx/result/resultGae.gif").toExternalForm()));
+            case GEOL -> new ImageView(new Image(getClass().getResource("/fx/result/resultGeol.gif").toExternalForm()));
+            case YUT -> new ImageView(new Image(getClass().getResource("/fx/result/resultYut.gif").toExternalForm()));
+            case MO -> new ImageView(new Image(getClass().getResource("/fx/result/resultMo.gif").toExternalForm()));
+            case BAK_DO -> new ImageView(new Image(getClass().getResource("/fx/result/resultBackDo.gif").toExternalForm()));
+        };
+        gifView.setFitWidth(300);
+        gifView.setFitHeight(300);
+        gifView.setPreserveRatio(true);
+
+        background.setTranslateY(30);
+        gifView.setTranslateY(30);
+
+        // 오버레이 구성: 배경 → GIF → 결과 이미지
+        StackPane overlay = new StackPane(background, gifView);
+        overlay.setAlignment(Pos.CENTER);
+        overlay.setPrefSize(500, 500);
+
+        Platform.runLater(() -> {
+            if (scene != null && scene.getRoot() instanceof StackPane rootPane) {
+                rootPane.getChildren().add(overlay);
+
+                // 애니메이션 후 결과 이미지 표시
+                PauseTransition remove = new PauseTransition(Duration.seconds(1.5));
+                remove.setOnFinished(ev -> rootPane.getChildren().remove(overlay));
+                remove.play();
+            } else {
+                System.err.println("Scene is null or root is not StackPane – overlay not added.");
+            }
+        });
+        currentResults.add(result);
+        repaint(1);
+    }
+
+    private void applyThrowSelections(List<YutThrowResult> results) {
+        Player currentPlayer = controller.getCurrentPlayer();
+
+        // 빽도 단독일 경우, 아직 출발 안한 말만 있을 때 턴 넘김
+        if (results.size() == 1 && results.getFirst() == YutThrowResult.BAK_DO) {
+            boolean notStarted = controller.getNotStarted(currentPlayer);
+
+            if (notStarted) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("알림");
+                alert.setHeaderText(null);
+                alert.setContentText("출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다.");
+                alert.showAndWait();
+
+                controller.nextTurn();
+                // 기존 highlight 지우기
+                if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+                    PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+                    playerInform.setIsTurn(false);
+                }
+                currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+                currentResults.clear();
+                repaint(3);
+                System.out.println("플레이어 바뀜" + currentPlayerIndex);
+                return;
+            }
+        }
+
+        if (results.size() > 1) {
+            while (!results.isEmpty()) {
+                // 옵션 리스트 생성
+                String[] options = controller.getChoiceLetters(results);
+                List<String> optionList = Arrays.asList(options);
+
+                ChoiceDialog<String> dialog = new ChoiceDialog<>(options[0], optionList);
+                dialog.setTitle("이동 선택");
+                dialog.setHeaderText(null);
+                dialog.setContentText("몇 칸 이동하시겠습니까?");
+                Optional<String> result = dialog.showAndWait();
+
+                if (result.isEmpty()) continue;
+
+                String choiceStr = result.get();
+                int choiceIndex = optionList.indexOf(choiceStr);
+                YutThrowResult chosen = results.get(choiceIndex);
+
+                boolean notStarted = controller.getNotStarted(currentPlayer);
+                if (chosen == YutThrowResult.BAK_DO && notStarted) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("경고");
+                    alert.setHeaderText(null);
+                    alert.setContentText("출발하지 않은 상태에서는 빽도를 선택할 수 없습니다.");
+                    alert.showAndWait();
+                    continue;
+                }
+
+                YutThrowResult chosenResult = results.remove(choiceIndex);
+                moveNode(currentPlayer, chosenResult);
+
+                // 현재 선택한 결과 인덱스를 기반으로 PlayerInform 갱신
+                repaint(1);
+
+                if (controller.isGameOver()) {
+                    break;
+                }
+            }
+        } else {
+            moveNode(currentPlayer, results.get(0));
+        }
+
+        if (controller.isGameOver()) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("게임 종료");
+            alert.setHeaderText(null);
+            alert.setContentText("승리자: " + controller.getWinner().getName());
+            alert.showAndWait();
+            Platform.exit(); // JavaFX용 종료
+        } else {
+            controller.nextTurn();
+            // 기존 highlight 지우기
+            if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+                PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+                playerInform.setIsTurn(false);
+            }
+            currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+            currentResults.clear();
+            repaint(3);
+            System.out.println("플레이어 바뀜" + currentPlayerIndex);
+        }
+    }
+
+    private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
+        Piece selected = selectPiece(currentPlayer, chosenResult);
+
+        if (selected != null) {
+            int steps = controller.getSteps(chosenResult);
+
+            BoardNode curr = selected.getCurrentNode();
+            if (curr == null) curr = controller.getBoard().getStartNode();
+
+            if (steps < 0) {
+                List<BoardNode> prevs = controller.getBoard().getPossiblePreviousNodes(curr);
+                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동", -1);
+                if (dest != null)
+                    controller.movePiece(selected, dest, controller.getContainsStartNode());
+            } else {
+                List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
+                List<BoardNode> path = controller.getBoard().getPaths();
+                List<List<BoardNode>> paths = controller.splitPath(path, steps);
+
+                int canFinishIndex = controller.checkCanFinishIndex(paths, path);
+
+                BoardNode dest;
+                if (controller.isCrossroad(curr) && cans.size() > 1) {
+                    dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
+                } else {
+                    dest = cans.isEmpty() ? null : cans.get(0);
+                }
+
+                if (dest != null) {
+                    controller.isFinished(selected, dest, path, steps);
+                }
+            }
+            currentResults.remove(chosenResult);
+            repaint(1);
+            repaint(2);
+            boardPane.drawBoard(); // JavaFX에서는 직접 만든 메서드로 redraw
+        }
+    }
+
+    private Piece selectPiece(Player player, YutThrowResult chosenResult) {
+        PieceDecisionResult pieceDecisionResult = controller.getPieceDecisions(player, chosenResult);
+        List<Piece> choices = pieceDecisionResult.choices();     // 이동 가능한 pieces 리스트
+        List<String> pieceDecisions = pieceDecisionResult.decisions();   //
+
+        if (controller.allPiecesFinished(player)) {
+            controller.checkWin();
+            if (controller.isGameOver()) {
+                Alert winAlert = new Alert(Alert.AlertType.INFORMATION);
+                winAlert.setTitle("게임 종료");
+                winAlert.setHeaderText(null);
+                winAlert.setContentText("승리자: " + controller.getWinner().getName());
+                winAlert.showAndWait();
+                Platform.exit();
+            }
+            return null;
+        } else {
+            // 선택 가능한 말이 없음 → 메시지 출력 후 턴 넘김
+            if (pieceDecisions.isEmpty()) {
+                String msg = controller.checkBaekdo(chosenResult)
+                        ? "시작지점에서 빽도를 사용하실 수 없습니다."
+                        : "이 플레이어는 이동 가능한 말이 없습니다.";
+
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("선택 불가");
+                alert.setHeaderText(null);
+                alert.setContentText(msg);
+                alert.showAndWait();
+
+                controller.nextTurn();
+                // 기존 highlight 지우기
+                if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+                    PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+                    playerInform.setIsTurn(false);
+                }
+                currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+                System.out.println("플레이어 바뀜" + currentPlayerIndex);
+                currentResults.clear();
+                repaint(3);
+                return null;
+            }
+
+            // 실제 선택창
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(pieceDecisions.getFirst(), pieceDecisions);
+            dialog.setTitle("말 선택");
+            dialog.setHeaderText(null);
+            dialog.setContentText("이동할 말을 선택하세요 (" + player.getName() + "):");
+
+            Optional<String> result = dialog.showAndWait();
+            if (result.isEmpty()) return null;
+
+            int choiceIndex = pieceDecisions.indexOf(result.get());
+            return (choiceIndex < 0 || choiceIndex >= choices.size()) ? null : choices.get(choiceIndex);
+        }
+    }
+
+    private BoardNode chooseDestination(List<BoardNode> cands, String title, int finishIndex) {
+        if (cands.size() == 1) return cands.getFirst();
+
+        List<String> options = new ArrayList<>();
+        for (int i = 0; i < cands.size(); i++) {
+            String name = cands.get(i).getId();
+            if (i == finishIndex) name += " (Finish)";
+            options.add(name);
+        }
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(options.get(0), options);
+        dialog.setTitle(title);
+        dialog.setHeaderText(null);
+        dialog.setContentText("이동할 노드를 선택하세요:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) return null;
+
+        int choiceIndex = options.indexOf(result.get());
+        return (choiceIndex < 0 || choiceIndex >= cands.size()) ? null : cands.get(choiceIndex);
+    }
+
     private boolean isSelected(int index) {
         return buttonImg.get(index).getEffect() != null;
     }
 
+    /**
+     * 버튼 클릭 시 강조 효과
+     */
     private void focus(int selectedIndex) {
-        // 모든 카드 초기화
+        // 버튼 초기화
         for (int i = 0; i < buttonImg.size(); i++) {
             ImageView board = buttonImg.get(i);
             board.setEffect(null);
@@ -251,7 +537,7 @@ public class GameBoardView {
 
         buttonImg.get(selectedIndex).setEffect(shadow);
 
-        // 선택된 카드 전체에 살짝 확대 효과
+        // 선택된 버튼에 살짝 확대 효과
         StackPane selectedPane = buttonPane.get(selectedIndex);
         selectedPane.setScaleX(1.02);
         selectedPane.setScaleY(1.02);
@@ -269,6 +555,36 @@ public class GameBoardView {
         } catch (Exception e) {
             System.err.println("이미지 로딩 실패: " + path + " - " + e.getMessage());
             return new ImageView();
+        }
+    }
+
+    private void repaint(int change){    // 1 : 결과판 2 : 모든 플레이어의 피스, 3 : 플레이어
+        System.out.println("현재 플레이어 인덱스 : " + currentPlayerIndex);
+        if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+            PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+            if (playerInform != null) {
+                switch (change){
+                    case 1:
+                        playerInform.setYutResults(currentResults);
+                        break;
+                    case 2:
+                        for (int i=0; i < allPlayerInforms.size(); i++){
+                            Player player = controller.getGame().getPlayers().get(i);
+                            int nonStartPieceNum = player.getNonStartPiecesNum();
+                            System.out.println(i + "번째 플레이어의 nonStart" + nonStartPieceNum);
+                            PlayerInform eachPlayer = allPlayerInforms.get(i);
+                            eachPlayer.setNonStartPieceNum(nonStartPieceNum);
+                        }
+                        break;
+                    case 3:
+                        playerInform.setIsTurn(true);
+                        break;
+                }
+            } else {
+                System.err.println("플레이어 정보가 null입니다: index = " + currentPlayerIndex);
+            }
+        } else {
+            System.err.println("유효하지 않은 플레이어 인덱스입니다: " + currentPlayerIndex);
         }
     }
 }

@@ -28,7 +28,7 @@ class YutGameTest {
         // 간단한 플레이어 + 말 설정
         List<Player> players = new ArrayList<>();
         for (int i = 1; i <= 2; i++) {
-            Player player = new Player("P" + i, new ArrayList<>());
+            Player player = new Player("P" + i, new ArrayList<>(), i);
             for (int j = 0; j < 4; j++) {
                 Piece piece = new Piece(player);
                 player.getPieces().add(piece);

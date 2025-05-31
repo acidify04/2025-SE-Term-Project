@@ -78,7 +78,7 @@ public class FXYutGameView implements YutGameView {
 
     @Override
     public void repaintBoard() {
-        // JavaFX는 필요시 Platform.runLater(...)로 갱신 가능
+        router.getGameBoardView().getBoardPane().drawBoard();
     }
 
     @Override

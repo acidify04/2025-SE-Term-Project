@@ -21,9 +21,7 @@ public class YutGame {
     private YutThrowResult lastThrowResult; // 최근 윷 결과
 
     private boolean extraTurnFlag;     // "잡으면 한 번 더" 발생 플래그
-
     private boolean containsStartNode;
-
     private Random random;
 
     public YutGame() {
@@ -45,6 +43,10 @@ public class YutGame {
 
     public void setLastThrowResult(YutThrowResult lastThrowResult) {
         this.lastThrowResult = lastThrowResult;
+    }
+
+    public YutThrowResult getLastThrowResult() {
+        return lastThrowResult;
     }
 
     /**
@@ -85,9 +87,7 @@ public class YutGame {
     /**
      * 지정 윷 던지기 (테스트/디버그용).
      */
-    public YutThrowResult getLastThrowResult() {
-        return lastThrowResult;
-    }
+
 
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
@@ -104,6 +104,42 @@ public class YutGame {
     /** 외부에서 extraTurnFlag 확인용 */
     public boolean hasExtraTurnFlag() {
         return extraTurnFlag;
+    }
+
+    public List<YutThrowResult> collectResults(
+            YutThrowResult firstResult,
+            boolean isRandom,
+            Supplier<YutThrowResult> manualThrowProvider,
+            Consumer<YutThrowResult> resultDisplayer,
+            Runnable promptExtraThrow,
+            List<YutThrowResult> results
+    ) {
+        int extraThrows = 0;
+
+        // 첫 결과 포함
+        if (firstResult == YutThrowResult.YUT || firstResult == YutThrowResult.MO)
+            extraThrows++;
+        if (extraTurnFlag)  // 잡았으면 true임
+            extraThrows++;
+
+        extraTurnFlag = false;  // 초기화 중요
+
+        while (extraThrows-- > 0) {
+            promptExtraThrow.run();
+            YutThrowResult next = isRandom ? throwYutRandom() : manualThrowProvider.get();
+            resultDisplayer.accept(next);
+            results.add(next);
+
+            // 던진 결과가 또 윷/모거나 잡았으면 추가
+            if (next == YutThrowResult.YUT || next == YutThrowResult.MO)
+                extraThrows++;
+            if (extraTurnFlag)
+                extraThrows++;
+
+            extraTurnFlag = false;  // 한 번만 적용되도록
+        }
+
+        return results;
     }
 
     /**
@@ -327,6 +363,8 @@ public class YutGame {
             // 추가 턴 유지
         } else {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            System.out.println("[DEBUG] === nextTurn end ===");
+            System.out.println("현재 턴 : " + currentPlayerIndex);
         }
         extraTurnFlag = false;
     }
@@ -343,30 +381,6 @@ public class YutGame {
                 break;
             }
         }
-    }
-
-    /**
-     * 필요 시 게임 재시작 로직(말 위치 초기화 등) 구현 가능
-     */
-    public void resetGame() {
-        // 예: 각 말 currentNode=null, finished=false
-        // BoardNode start = board.getStartNode();
-        for (Player p : players) {
-            p.setWinner(false);
-            for (Piece piece : p.getPieces()) {
-                piece.setFinished(false);
-                piece.ungroup();
-                if (piece.getCurrentNode() != null) {
-                    piece.getCurrentNode().removePiece(piece);
-                }
-                piece.moveTo(board.getStartNode());
-            }
-        }
-        this.currentPlayerIndex = 0;
-        this.isGameOver = false;
-        this.winner = null;
-        this.lastThrowResult = null;
-        this.extraTurnFlag = false;
     }
 
     /**
@@ -420,41 +434,7 @@ public class YutGame {
         piece.moveBackOneStep();
     }
 
-    public List<YutThrowResult> collectResults(
-            YutThrowResult firstResult,
-            boolean isRandom,
-            Supplier<YutThrowResult> manualThrowProvider,
-            Consumer<YutThrowResult> resultDisplayer,
-            Runnable promptExtraThrow,
-            List<YutThrowResult> results
-    ) {
-        int extraThrows = 0;
 
-        // 첫 결과 포함
-        if (firstResult == YutThrowResult.YUT || firstResult == YutThrowResult.MO)
-            extraThrows++;
-        if (extraTurnFlag)  // 잡았으면 true임
-            extraThrows++;
-
-        extraTurnFlag = false;  // 초기화 중요
-
-        while (extraThrows-- > 0) {
-            promptExtraThrow.run();
-            YutThrowResult next = isRandom ? throwYutRandom() : manualThrowProvider.get();
-            resultDisplayer.accept(next);
-            results.add(next);
-
-            // 던진 결과가 또 윷/모거나 잡았으면 추가
-            if (next == YutThrowResult.YUT || next == YutThrowResult.MO)
-                extraThrows++;
-            if (extraTurnFlag)
-                extraThrows++;
-
-            extraTurnFlag = false;  // 한 번만 적용되도록
-        }
-
-        return results;
-    }
 
     public boolean isCrossroad(BoardNode node) {
         String id = node.getId();
@@ -510,5 +490,29 @@ public class YutGame {
             }
         }
         return canFinishIndex;
+    }
+
+    /**
+     * 필요 시 게임 재시작 로직(말 위치 초기화 등) 구현 가능
+     */
+    public void resetGame() {
+        // 예: 각 말 currentNode=null, finished=false
+        // BoardNode start = board.getStartNode();
+        for (Player p : players) {
+            p.setWinner(false);
+            for (Piece piece : p.getPieces()) {
+                piece.setFinished(false);
+                piece.ungroup();
+                if (piece.getCurrentNode() != null) {
+                    piece.getCurrentNode().removePiece(piece);
+                }
+                piece.moveTo(board.getStartNode());
+            }
+        }
+        this.currentPlayerIndex = 0;
+        this.isGameOver = false;
+        this.winner = null;
+        this.lastThrowResult = null;
+        this.extraTurnFlag = false;
     }
 }

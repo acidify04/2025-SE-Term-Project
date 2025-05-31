@@ -23,61 +23,56 @@ public class PentagonBoard implements YutBoard {
         List<BoardNode> allNodes = new ArrayList<>();
 
         // 꼭짓점 노드
+        BoardNode B = new BoardNode("B", 362, 421);
+        BoardNode C = new BoardNode("C", 438, 174);
+        BoardNode D = new BoardNode("D", 237, 21);
+        BoardNode start = new BoardNode("START_NODE", 38, 174);
+        BoardNode A = new BoardNode("A", 114, 421);
 
-        BoardNode B = new BoardNode("B", 459, 518);
-        BoardNode C = new BoardNode("C", 557, 217);
-        BoardNode D = new BoardNode("D", 300, 30);
-        BoardNode start = new BoardNode("START_NODE", 43, 217);
-        BoardNode A = new BoardNode("A", 141, 518);
+// 외곽 노드
+        BoardNode B1 = new BoardNode("B1", 377, 371);
+        BoardNode B2 = new BoardNode("B2", 392, 321);
+        BoardNode B3 = new BoardNode("B3", 408, 272);
+        BoardNode B4 = new BoardNode("B4", 423, 222);
 
-        // 외각 노드
-        BoardNode B1 = new BoardNode("B1", 479, 458);
-        BoardNode B2 = new BoardNode("B2", 498, 398);
-        BoardNode B3 = new BoardNode("B3", 518, 337);
-        BoardNode B4 = new BoardNode("B4", 537, 277);
+        BoardNode C1 = new BoardNode("C1", 398, 143);
+        BoardNode C2 = new BoardNode("C2", 358, 113);
+        BoardNode C3 = new BoardNode("C3", 319, 83);
+        BoardNode C4 = new BoardNode("C4", 278, 53);
 
-        BoardNode C1 = new BoardNode("C1", 506, 180);
-        BoardNode C2 = new BoardNode("C2", 454, 142);
-        BoardNode C3 = new BoardNode("C3", 403, 105);
-        BoardNode C4 = new BoardNode("C4", 351, 67);
+        BoardNode D1 = new BoardNode("D1", 199, 53);
+        BoardNode D2 = new BoardNode("D2", 158, 83);
+        BoardNode D3 = new BoardNode("D3", 119, 113);
+        BoardNode D4 = new BoardNode("D4", 79, 143);
 
-        BoardNode D1 = new BoardNode("D1", 249, 67);
-        BoardNode D2 = new BoardNode("D2", 197, 105);
-        BoardNode D3 = new BoardNode("D3", 146, 142);
-        BoardNode D4 = new BoardNode("D4", 94, 180);
+        BoardNode s1 = new BoardNode("s1", 54, 222);
+        BoardNode s2 = new BoardNode("s2", 69, 272);
+        BoardNode s3 = new BoardNode("s3", 85, 321);
+        BoardNode s4 = new BoardNode("s4", 99, 371);
 
-        BoardNode s1 = new BoardNode("s1", 63, 277);
-        BoardNode s2 = new BoardNode("s2", 82, 337);
-        BoardNode s3 = new BoardNode("s3", 102, 398);
-        BoardNode s4 = new BoardNode("s4", 121, 458);
+        BoardNode A1 = new BoardNode("A1", 164, 421);
+        BoardNode A2 = new BoardNode("A2", 213, 421);
+        BoardNode A3 = new BoardNode("A3", 263, 421);
+        BoardNode A4 = new BoardNode("A4", 312, 421);
 
-        BoardNode A1 = new BoardNode("A1", 205, 518);
-        BoardNode A2 = new BoardNode("A2", 268, 518);
-        BoardNode A3 = new BoardNode("A3", 332, 518);
-        BoardNode A4 = new BoardNode("A4", 395, 518);
+// 중앙 및 지름길
+        BoardNode center = new BoardNode("CENTER", 237, 242);
 
-        // 지름길 노드
-        BoardNode center = new BoardNode("CP", 300, 300);
+        BoardNode c5 = new BoardNode("c5", 315, 355);
+        BoardNode c6 = new BoardNode("c6", 283, 309);
 
-        // start to center
-        BoardNode c5 = new BoardNode("c5", 400, 437);
-        BoardNode c6 = new BoardNode("c6", 359, 381);
+        BoardNode c7 = new BoardNode("c7", 364, 199);
+        BoardNode c8 = new BoardNode("c8", 312, 217);
 
-        // A to center
-        BoardNode c7 = new BoardNode("c7", 462, 248);
-        BoardNode c8 = new BoardNode("c8", 395, 269);
+        BoardNode c9 = new BoardNode("c9", 237, 101);
+        BoardNode c10 = new BoardNode("c10", 237, 157);
 
-        // B to center
-        BoardNode c9 = new BoardNode("c9", 300, 130);
-        BoardNode c10 = new BoardNode("c10", 300, 200);
+        BoardNode c1 = new BoardNode("c1", 112, 199);
+        BoardNode c2 = new BoardNode("c2", 164, 217);
 
-        // C to center
-        BoardNode c1 = new BoardNode("c1", 138, 248);
-        BoardNode c2 = new BoardNode("c2", 205, 269);
+        BoardNode c3 = new BoardNode("c3", 160, 355);
+        BoardNode c4 = new BoardNode("c4", 192, 309);
 
-        // D to center
-        BoardNode c3 = new BoardNode("c3", 200, 437);
-        BoardNode c4 = new BoardNode("c4", 241, 381);
 
         // 노드 간 연결 설정 (테두리)
         start.addNextNode(s1);       s1.addNextNode(s2);

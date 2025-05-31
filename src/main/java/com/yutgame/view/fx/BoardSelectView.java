@@ -19,7 +19,8 @@ public class BoardSelectView {
     private YutGameController controller;
 
     public enum BoardChoice { SQUARE, PENTAGON, HEXAGON }
-    private BoardChoice selected = BoardChoice.SQUARE;
+    // ↓↓↓↓↓ [수정] 선택 초기값을 null로 변경
+    private BoardChoice selected = null;
 
     private final Scene scene;
     public Scene scene() { return scene; }
@@ -52,6 +53,10 @@ public class BoardSelectView {
                 });
         back.setFitWidth(250);
         next.setFitWidth(250);
+
+        // ↓↓↓↓↓ [수정] 처음엔 선택값이 없으므로 next 버튼 비활성화 + 흐릿하게
+        next.setDisable(true);
+        next.setOpacity(0.5);
 
         HBox btnLine = new HBox(350, back, next);
         btnLine.setAlignment(Pos.CENTER);
@@ -103,6 +108,10 @@ public class BoardSelectView {
         pane.setOnMouseClicked(e -> {
             selected = kind;
             focus(index);
+            // ↓↓↓↓↓ [수정] 보드 선택 시 next 버튼 활성화 (형 변환 경로 그대로) + 선명하게
+            ImageView nextBtn = (ImageView)((HBox)((VBox)pane.getParent().getParent()).getChildren().get(1)).getChildren().get(1);
+            nextBtn.setDisable(false);
+            nextBtn.setOpacity(1.0);
         });
         pane.setCursor(Cursor.HAND);
 

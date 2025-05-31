@@ -11,13 +11,18 @@ public class Player {
 
     private String name;
     private List<Piece> pieces;
+    private int nonStartPiecesNum;
     private boolean isWinner;
+    private int playerIndex;
 
-    public Player(String name, List<Piece> pieces) {
+    public Player(String name, List<Piece> pieces, int playerIndex) {
         this.name = name;
         this.pieces = pieces;
         this.isWinner = false;
+        this.playerIndex = playerIndex;
     }
+
+    public int getIndex() { return playerIndex; }
 
     public String getName() {
         return name;
@@ -33,6 +38,13 @@ public class Player {
 
     public void setWinner(boolean winner) {
         this.isWinner = winner;
+    }
+
+    public int getNonStartPiecesNum() {
+        this.nonStartPiecesNum = (int) pieces.stream()
+                .filter(piece -> !piece.getIsStarted())
+                .count();
+        return nonStartPiecesNum;
     }
 
     /**
@@ -51,12 +63,12 @@ public class Player {
     /**
      * 완주한 말의 개수를 반환
      */
-    public long getFinishedCount() {
+    public int getFinishedCount() {
         Set<Piece> all = new HashSet<>();
         for (Piece piece : pieces) {
             collectGroup(piece, all);  // 재귀적으로 그룹까지 포함
         }
-        return all.stream().filter(Piece::isFinished).count();
+        return (int)all.stream().filter(Piece::isFinished).count();
     }
 
     // 재귀적으로 그룹 말 포함

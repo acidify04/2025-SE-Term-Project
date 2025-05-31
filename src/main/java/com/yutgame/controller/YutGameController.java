@@ -21,19 +21,59 @@ public class YutGameController {
     private YutGame game;
     private YutGameView view;
 
-
     public YutGameController() {
         this.game = new YutGame();
         // SwingView 선택 시
-        //this.view = new SwingYutGameView();
-        //view.setController(this);
+        // this.view = new SwingYutGameView();
+        // view.setController(this);
 
         // javaFX 선택 시
         launch();
     }
 
     public void launch() {
-        FXAppLauncher.launchApp(this); // 여기서 JavaFX UI 실행
+        FXAppLauncher.launchApp(this);   // 여기서 JavaFX UI 실행
+    }
+
+    // YutGameController.java
+    public void initializeGame() {
+        view.setController(this);
+
+        int players = view.getPlayerCount();
+        int pieces  = view.getPieceCount();
+        int board   = view.getBoardChoice();
+
+        this.game = createGame(players, pieces, board);
+        view.initBoardPanel();
+        view.setVisibleBoard(true);
+    }
+
+    /**
+     * YutGame 초기화
+     */
+    public static YutGame createGame(int playerCount, int pieceCount, int boardChoice) {
+        List<Player> players = new ArrayList<>();
+        for (int i = 1; i <= playerCount; i++) {
+            Player player = new Player("P" + i, new ArrayList<>(), i);
+            for (int j = 0; j < pieceCount; j++) {
+                Piece piece = new Piece(player);
+                player.getPieces().add(piece);
+            }
+            players.add(player);
+        }
+
+        YutBoard board = switch (boardChoice) {
+            case 0 -> SquareBoard.createStandardBoard();
+            case 1 -> PentagonBoard.createPentagonBoard();
+            case 2 -> HexagonBoard.createHexagonBoard();
+            default -> throw new IllegalArgumentException("보드 선택이 잘못되었습니다.");
+        };
+
+        YutGame game = new YutGame();
+        game.setBoard(board);
+        game.setPlayers(players);
+
+        return game;
     }
 
     public YutGame getGame() {
@@ -124,44 +164,6 @@ public class YutGameController {
 
     public void checkWin() {
         game.checkWinCondition();
-    }
-
-    public static YutGame createGame(int playerCount, int pieceCount, int boardChoice) {
-        List<Player> players = new ArrayList<>();
-        for (int i = 1; i <= playerCount; i++) {
-            Player player = new Player("P" + i, new ArrayList<>());
-            for (int j = 0; j < pieceCount; j++) {
-                Piece piece = new Piece(player);
-                player.getPieces().add(piece);
-            }
-            players.add(player);
-        }
-
-        YutBoard board = switch (boardChoice) {
-            case 0 -> SquareBoard.createStandardBoard();
-            case 1 -> PentagonBoard.createPentagonBoard();
-            case 2 -> HexagonBoard.createHexagonBoard();
-            default -> throw new IllegalArgumentException("보드 선택이 잘못되었습니다.");
-        };
-
-        YutGame game = new YutGame();
-        game.setBoard(board);
-        game.setPlayers(players);
-
-        return game;
-    }
-
-    // YutGameController.java
-    public void initializeGame() {
-        view.setController(this);
-
-        int players = view.getPlayerCount();
-        int pieces  = view.getPieceCount();
-        int board   = view.getBoardChoice();
-
-        this.game = createGame(players, pieces, board);
-        view.initBoardPanel();
-        view.setVisibleBoard(true);
     }
 
     /**
