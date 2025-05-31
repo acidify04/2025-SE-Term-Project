@@ -1,8 +1,12 @@
 package main.java.com.yutgame.view.fx;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.Cursor;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -20,9 +24,14 @@ public class BoardPane extends Pane {
     private static final int PIECE_SIZE_Y = 55;
 
     private final YutGameController controller;
+    private final GameBoardView gameBoardView;
 
-    public BoardPane(YutGameController controller) {
+    public BoardPane(YutGameController controller, GameBoardView gameBoardView) {
         this.controller = controller;
+        this.gameBoardView = gameBoardView;
+        this.setPrefSize(440, 440);
+        this.setMaxSize(440, 440);
+        this.setMinSize(440, 440);
         drawBoard();
     }
 
@@ -81,23 +90,59 @@ public class BoardPane extends Pane {
             if (p.isFinished() || p.getCurrentNode() == null) continue;
 
             String playerName = p.getOwner().getName();
-            Image image = switch (playerName) {
-                case "P1" -> new Image("/fx/piece/piece_1.png");
-                case "P2" -> new Image("/fx/piece/piece_2.png");
-                case "P3" -> new Image("/fx/piece/piece_3.png");
-                case "P4" -> new Image("/fx/piece/piece_4.png");
-                default -> new Image("/fx/piece/piece_1.png");
+            String path = switch (playerName) {
+                case "P1" -> "/fx/piece/piece_1.png";
+                case "P2" -> "/fx/piece/piece_2.png";
+                case "P3" -> "/fx/piece/piece_3.png";
+                case "P4" -> "/fx/piece/piece_4.png";
+                default -> "/fx/piece/piece_1.png";
             };
 
             int px = node.getX() + (idx * 10);
             int py = node.getY() - 13 + (idx * 10);
-            ImageView iv = new ImageView(image);
-            iv.setFitWidth(PIECE_SIZE_X);
-            iv.setFitHeight(PIECE_SIZE_Y);
-            iv.setX(px);
-            iv.setY(py);
-            this.getChildren().add(iv);
+            StackPane stackPane = clickableImage(px, py, path, e ->gameBoardView.onPieceClicked(p));
+
             idx++;
         }
+    }
+
+    private StackPane clickableImage(int px, int py, String path, EventHandler<ActionEvent> act) {
+        StackPane stackPane = new StackPane();
+        stackPane.setMaxSize(PIECE_SIZE_X, PIECE_SIZE_Y);
+
+        ImageView iv = new ImageView(new Image(path));
+        iv.setFitWidth(PIECE_SIZE_X);
+        iv.setFitHeight(PIECE_SIZE_Y);
+
+        stackPane.getChildren().add(iv);
+        stackPane.setLayoutX(px);
+        stackPane.setLayoutY(py);
+
+        this.getChildren().add(stackPane);
+
+        // 마우스 이벤트 설정
+        stackPane.setOnMouseClicked(e -> act.handle(new ActionEvent()));
+
+        // 마우스 커서 변경
+        stackPane.setCursor(Cursor.HAND);
+
+        // 마우스 호버 효과 (선택사항)
+        stackPane.setOnMouseEntered(e -> {
+            stackPane.setOpacity(0.8);  // 살짝 투명하게
+            stackPane.setScaleX(1.05);  // 살짝 확대
+            stackPane.setScaleY(1.05);
+        });
+
+        stackPane.setOnMouseExited(e -> {
+            stackPane.setOpacity(1.0);  // 원래대로
+            stackPane.setScaleX(1.0);   // 원래 크기
+            stackPane.setScaleY(1.0);
+        });
+
+        return stackPane;
+    }
+
+    private void onPieceClicked(Piece piece) {
+        gameBoardView.onPieceClicked(piece);
     }
 }

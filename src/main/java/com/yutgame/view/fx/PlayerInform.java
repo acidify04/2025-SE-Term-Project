@@ -1,7 +1,10 @@
 package main.java.com.yutgame.view.fx;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -30,6 +33,7 @@ public class PlayerInform extends Pane{
     private int nonStartPieceNum;
     private List<YutThrowResult> results = new ArrayList<>();
 
+    private StackPane newPieceButton = new StackPane();
     private StackPane playerPane = new StackPane();         // 플레이어 이미지 저장할 판
     private StackPane piecePane = new StackPane();          // 플레이어의 모든 피스 저장할 판
     private VBox playerPiecesResult;
@@ -60,6 +64,7 @@ public class PlayerInform extends Pane{
     }
 
     public void setIsTurn(boolean isTurn){
+        System.out.println("setIsTurn실행");
         this.isTurn = isTurn;
         drawPlayer();
     }
@@ -68,14 +73,15 @@ public class PlayerInform extends Pane{
         drawPlayer();
         drawPieces();
         drawResultPane();
+        drawNewButton();
 
         // 사용자와 말, 윷 결과판 수직박스로 묶기
         if (playerIndex < 3){   // 윗 줄은 플레이어 이미지가 위로 오게
-            playerPiecesResult = new VBox(playerPane, piecePane, resultPane);
-            playerPiecesResult.setSpacing(10);
+            playerPiecesResult = new VBox(playerPane, piecePane, resultPane, newPieceButton);
+            playerPiecesResult.setSpacing(5);
         }else if (playerIndex >= 3){   // 아래 줄은 피스 이미지가 위로 오게
-            playerPiecesResult = new VBox(resultPane, piecePane, playerPane);
-            playerPiecesResult.setSpacing(10);
+            playerPiecesResult = new VBox(newPieceButton, resultPane, piecePane, playerPane);
+            playerPiecesResult.setSpacing(5);
         }
         else{
             System.out.println("플레이어 수 선택 오류");
@@ -87,11 +93,13 @@ public class PlayerInform extends Pane{
     }
 
     private void drawPlayer(){
+        System.out.println("drawPlayer");
         playerPane.getChildren().clear();   // 판 초기화
         if (isTurn){  // 현재 플레이어의 턴인 경우
             ImageView img = safeLoadImage("/fx/player/player_" + playerIndex + "_highlight.png");
             img.setFitWidth(100);
             img.setFitHeight(100);
+            img.setTranslateY(5);
             img.setPreserveRatio(false);
             img.setSmooth(true);
             playerPane.getChildren().add(img);
@@ -106,8 +114,10 @@ public class PlayerInform extends Pane{
     }
 
     private void drawPieces() {
+        piecePane.getChildren().clear(); // 이전 피스 초기화
         piecePane.setPrefSize(143, 63);
         int nonStartIndex = 0;
+
         for (nonStartIndex = 0 ; nonStartIndex < nonStartPieceNum; nonStartIndex++) {
             ImageView pieceImg = safeLoadImage("/fx/piece/piece_" + playerIndex + ".png");
             pieceImg.setFitWidth(28);
@@ -192,6 +202,54 @@ public class PlayerInform extends Pane{
 
             resultItemsBox.getChildren().add(img);
         }
+    }
+
+    private void drawNewButton (){
+        ImageView newBtn = switch(playerIndex){
+            case 1 -> clickableImage("/fx/button/new_1.png",
+                    e -> gameBoardView.onNewPieceButtonClicked());
+            case 2 -> clickableImage("/fx/button/new_2.png",
+                    e -> gameBoardView.onNewPieceButtonClicked());
+            case 3 -> clickableImage("/fx/button/new_3.png",
+                    e -> gameBoardView.onNewPieceButtonClicked());
+            case 4 -> clickableImage("/fx/button/new_4.png",
+                    e -> gameBoardView.onNewPieceButtonClicked());
+            default -> throw new IllegalStateException("Unexpected value: " + playerIndex);
+        };
+        
+        if (playerIndex < 3){
+            newBtn.setTranslateY(5);
+        }
+        newPieceButton.getChildren().add(newBtn);
+    }
+
+    private ImageView clickableImage(String path, EventHandler<ActionEvent> act) {
+        ImageView iv = new ImageView(new Image(path));
+        iv.setFitWidth(152);
+        iv.setFitHeight(32);
+        iv.setPreserveRatio(false);
+        iv.setSmooth(true);
+
+        // 마우스 이벤트 설정
+        iv.setOnMouseClicked(e -> act.handle(new ActionEvent()));
+
+        // 마우스 커서 변경
+        iv.setCursor(Cursor.HAND);
+
+        // 마우스 호버 효과 (선택사항)
+        iv.setOnMouseEntered(e -> {
+            iv.setOpacity(0.8);  // 살짝 투명하게
+            iv.setScaleX(1.05);  // 살짝 확대
+            iv.setScaleY(1.05);
+        });
+
+        iv.setOnMouseExited(e -> {
+            iv.setOpacity(1.0);  // 원래대로
+            iv.setScaleX(1.0);   // 원래 크기
+            iv.setScaleY(1.0);
+        });
+
+        return iv;
     }
 
     // 안전한 이미지 로딩
