@@ -9,8 +9,11 @@ import java.util.List;
  * 규칙을 (getPossibleNextNodes)에서 간단히 시뮬레이션한다.
  */
 public class PentagonBoard implements YutBoard {
-    private List<BoardNode> nodes;
+    /** 화면에서 전체 보드를 이동시키기 위한 오프셋 */
+    private static final int DX = -38;   // 왼쪽으로 30 픽셀
+    private static final int DY = -34;   // 위로   30 픽셀
 
+    private List<BoardNode> nodes;
     // 완주 확인용 : path에 start node가 포함되는지
     private List<BoardNode> paths = new ArrayList<>();
 
@@ -18,91 +21,75 @@ public class PentagonBoard implements YutBoard {
         this.nodes = nodes;
     }
 
+    /** 좌표 보정을 한 노드를 생성하는 헬퍼 */
+    private static BoardNode n(String id, int x, int y) {
+        return new BoardNode(id, x + DX, y + DY);
+    }
+
     public static PentagonBoard createPentagonBoard() {
-        // 노드 생성
         List<BoardNode> allNodes = new ArrayList<>();
 
-        // 꼭짓점 노드
-        BoardNode B = new BoardNode("B", 362, 421);
-        BoardNode C = new BoardNode("C", 438, 174);
-        BoardNode D = new BoardNode("D", 237, 21);
-        BoardNode start = new BoardNode("START_NODE", 38, 174);
-        BoardNode A = new BoardNode("A", 114, 421);
+        /* ───── 꼭짓점 ───── */
+        BoardNode B     = n("B",           362, 421);
+        BoardNode C     = n("C",           438, 174);
+        BoardNode D     = n("D",           237,  21);
+        BoardNode start = n("START_NODE",   38, 174);
+        BoardNode A     = n("A",           114, 421);
 
-// 외곽 노드
-        BoardNode B1 = new BoardNode("B1", 377, 371);
-        BoardNode B2 = new BoardNode("B2", 392, 321);
-        BoardNode B3 = new BoardNode("B3", 408, 272);
-        BoardNode B4 = new BoardNode("B4", 423, 222);
+        /* ───── 외곽 ───── */
+        BoardNode B1 = n("B1", 377, 371);   BoardNode B2 = n("B2", 392, 321);
+        BoardNode B3 = n("B3", 408, 272);   BoardNode B4 = n("B4", 423, 222);
 
-        BoardNode C1 = new BoardNode("C1", 398, 143);
-        BoardNode C2 = new BoardNode("C2", 358, 113);
-        BoardNode C3 = new BoardNode("C3", 319, 83);
-        BoardNode C4 = new BoardNode("C4", 278, 53);
+        BoardNode C1 = n("C1", 398, 143);   BoardNode C2 = n("C2", 358, 113);
+        BoardNode C3 = n("C3", 319,  83);   BoardNode C4 = n("C4", 278,  53);
 
-        BoardNode D1 = new BoardNode("D1", 199, 53);
-        BoardNode D2 = new BoardNode("D2", 158, 83);
-        BoardNode D3 = new BoardNode("D3", 119, 113);
-        BoardNode D4 = new BoardNode("D4", 79, 143);
+        BoardNode D1 = n("D1", 199,  53);   BoardNode D2 = n("D2", 158,  83);
+        BoardNode D3 = n("D3", 119, 113);   BoardNode D4 = n("D4",  79, 143);
 
-        BoardNode s1 = new BoardNode("s1", 54, 222);
-        BoardNode s2 = new BoardNode("s2", 69, 272);
-        BoardNode s3 = new BoardNode("s3", 85, 321);
-        BoardNode s4 = new BoardNode("s4", 99, 371);
+        BoardNode s1 = n("s1",  54, 222);   BoardNode s2 = n("s2",  69, 272);
+        BoardNode s3 = n("s3",  85, 321);   BoardNode s4 = n("s4",  99, 371);
 
-        BoardNode A1 = new BoardNode("A1", 164, 421);
-        BoardNode A2 = new BoardNode("A2", 213, 421);
-        BoardNode A3 = new BoardNode("A3", 263, 421);
-        BoardNode A4 = new BoardNode("A4", 312, 421);
+        BoardNode A1 = n("A1", 164, 421);   BoardNode A2 = n("A2", 213, 421);
+        BoardNode A3 = n("A3", 263, 421);   BoardNode A4 = n("A4", 312, 421);
 
-// 중앙 및 지름길
-        BoardNode center = new BoardNode("CENTER", 237, 242);
+        /* ───── 중앙 및 지름길 ───── */
+        BoardNode center = n("CENTER", 237, 242);
 
-        BoardNode c5 = new BoardNode("c5", 315, 355);
-        BoardNode c6 = new BoardNode("c6", 283, 309);
+        BoardNode c5  = n("c5", 315, 355);  BoardNode c6  = n("c6", 283, 309);
+        BoardNode c7  = n("c7", 364, 199);  BoardNode c8  = n("c8", 312, 217);
+        BoardNode c9  = n("c9", 237, 101);  BoardNode c10 = n("c10",237, 157);
+        BoardNode c1  = n("c1", 112, 199);  BoardNode c2  = n("c2", 164, 217);
+        BoardNode c3  = n("c3", 160, 355);  BoardNode c4  = n("c4", 192, 309);
 
-        BoardNode c7 = new BoardNode("c7", 364, 199);
-        BoardNode c8 = new BoardNode("c8", 312, 217);
-
-        BoardNode c9 = new BoardNode("c9", 237, 101);
-        BoardNode c10 = new BoardNode("c10", 237, 157);
-
-        BoardNode c1 = new BoardNode("c1", 112, 199);
-        BoardNode c2 = new BoardNode("c2", 164, 217);
-
-        BoardNode c3 = new BoardNode("c3", 160, 355);
-        BoardNode c4 = new BoardNode("c4", 192, 309);
-
-
-        // 노드 간 연결 설정 (테두리)
+        /* ──────────── 간선 정의 ──────────── */
         start.addNextNode(s1);       s1.addNextNode(s2);
-        s2.addNextNode(s3);     s3.addNextNode(s4);
+        s2.addNextNode(s3);          s3.addNextNode(s4);
         s4.addNextNode(A);
 
-        A.addNextNode(A1);     A1.addNextNode(A2);
-        A2.addNextNode(A3);   A3.addNextNode(A4);
+        A.addNextNode(A1);           A1.addNextNode(A2);
+        A2.addNextNode(A3);          A3.addNextNode(A4);
         A4.addNextNode(B);
 
-        B.addNextNode(B1);     B1.addNextNode(B2);
-        B2.addNextNode(B3);   B3.addNextNode(B4);
+        B.addNextNode(B1);           B1.addNextNode(B2);
+        B2.addNextNode(B3);          B3.addNextNode(B4);
         B4.addNextNode(C);
 
-        C.addNextNode(C1);     C1.addNextNode(C2);
-        C2.addNextNode(C3);   C3.addNextNode(C4);
+        C.addNextNode(C1);           C1.addNextNode(C2);
+        C2.addNextNode(C3);          C3.addNextNode(C4);
         C4.addNextNode(D);
 
-        D.addNextNode(D1);     D1.addNextNode(D2);
-        D2.addNextNode(D3);   D3.addNextNode(D4);
+        D.addNextNode(D1);           D1.addNextNode(D2);
+        D2.addNextNode(D3);          D3.addNextNode(D4);
         D4.addNextNode(start);
 
-        // 내부 지름길 노드 간 연결 설정
-        A.addNextNode(c3);        c3.addNextNode(c4);      c4.addNextNode(center);
-        B.addNextNode(c5);        c5.addNextNode(c6);      c6.addNextNode(center);
-        C.addNextNode(c7);        c7.addNextNode(c8);      c8.addNextNode(center);
-        center.addNextNode(c10);  c10.addNextNode(c9);     c9.addNextNode(D);
-        center.addNextNode(c2);   c2.addNextNode(c1);      c1.addNextNode(start);
+        /* ───── 지름길 ───── */
+        A.addNextNode(c3);           c3.addNextNode(c4);     c4.addNextNode(center);
+        B.addNextNode(c5);           c5.addNextNode(c6);     c6.addNextNode(center);
+        C.addNextNode(c7);           c7.addNextNode(c8);     c8.addNextNode(center);
+        center.addNextNode(c10);     c10.addNextNode(c9);    c9.addNextNode(D);
+        center.addNextNode(c2);      c2.addNextNode(c1);     c1.addNextNode(start);
 
-        // 리스트 등록
+        /* ───── 등록 ───── */
         BoardNode[] arr = {
                 start, A, B, C, D, center,
                 s1, s2, s3, s4,
@@ -116,7 +103,6 @@ public class PentagonBoard implements YutBoard {
         for (BoardNode bn : arr) {
             allNodes.add(bn);
         }
-
         return new PentagonBoard(allNodes);
     }
 
