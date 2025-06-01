@@ -177,6 +177,7 @@ public class GameBoardView {
             focus(index);
             if (isRandom) {
                 YutThrowResult selected = controller.getRandomYut();
+                isRandomThrow = true;
                 processAllThrows(selected);
             }else{
                 // 지정 윷 던지기
@@ -235,7 +236,7 @@ public class GameBoardView {
         );
         // 현재 플레이어 인덱스를 기반으로 PlayerInform 갱신
         repaint(1);
-
+        isRandomThrow = false;
         // 선택 적용 (예: 말 선택)
         applyThrowSelections();
     }
