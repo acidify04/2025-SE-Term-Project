@@ -12,6 +12,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.animation.FadeTransition;
+import javafx.util.Duration;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.model.Player;
 import main.java.com.yutgame.model.YutThrowResult;
@@ -56,17 +58,20 @@ public class PlayerInform extends Pane{
         this.nonStartPieceNum = nonStartPieceNum;
         System.out.println("nonStart : " + nonStartPieceNum);
         drawPieces();
+        updateNewPieceButtonState(); // 버튼 상태 업데이트 추가
     }
 
     public void setYutResults (List<YutThrowResult> results){
         this.results = results;
         drawYutResult();
+        updateNewPieceButtonState(); // ★ 추가: 윷 결과 변경 시 버튼 상태도 업데이트
     }
 
     public void setIsTurn(boolean isTurn){
         System.out.println("setIsTurn실행");
         this.isTurn = isTurn;
         drawPlayer();
+        updateNewPieceButtonState(); // 버튼 상태 업데이트 추가
     }
 
     public Pane drawPlayerInform() {
@@ -182,30 +187,117 @@ public class PlayerInform extends Pane{
         return resultPane;
     }
 
-    private void drawYutResult (){
+    // =========================== [수정 시작: drawYutResult()] ============================
+    private void drawYutResult() {
         resultItemsBox.getChildren().clear(); // 기존 결과 초기화
 
-        for (YutThrowResult yutThrowResult : results) {
+        // (1) iconList: 아이콘들을 담아두고, 나중에 unselect 시 참조
+        List<ImageView> iconList = new ArrayList<>();
+
+        // (2) selectedIndex: 현재 선택된 아이콘 (없으면 -1)
+        final int[] selectedIndex = {-1};
+
+        for (int i = 0; i < results.size(); i++) {
+            YutThrowResult yutThrowResult = results.get(i);
+            final int idx = i; // 람다에서 사용
+
+            // 기본 아이콘(선택 해제 상태)
             ImageView img = switch (yutThrowResult) {
-                case DO -> safeLoadImage("/fx/result/do.png");
-                case GAE -> safeLoadImage("/fx/result/gae.png");
-                case GEOL -> safeLoadImage("/fx/result/geol.png");
-                case YUT -> safeLoadImage("/fx/result/yut.png");
-                case MO -> safeLoadImage("/fx/result/mo.png");
+                case DO     -> safeLoadImage("/fx/result/do.png");
+                case GAE    -> safeLoadImage("/fx/result/gae.png");
+                case GEOL   -> safeLoadImage("/fx/result/geol.png");
+                case YUT    -> safeLoadImage("/fx/result/yut.png");
+                case MO     -> safeLoadImage("/fx/result/mo.png");
                 case BAK_DO -> safeLoadImage("/fx/result/back.png");
             };
-
             img.setFitWidth(25);
             img.setFitHeight(25);
             img.setPreserveRatio(false);
             img.setSmooth(true);
 
+            // '선택됨' 아이콘
+            String selectedPath = switch (yutThrowResult) {
+                case DO     -> "/fx/result/do_selected.png";
+                case GAE    -> "/fx/result/gae_selected.png";
+                case GEOL   -> "/fx/result/geol_selected.png";
+                case YUT    -> "/fx/result/yut_selected.png";
+                case MO     -> "/fx/result/mo_selected.png";
+                case BAK_DO -> "/fx/result/back_selected.png";
+            };
+
+            img.setOnMouseClicked(e -> {
+                if (selectedIndex[0] == idx) {
+                    // 이미 선택된 아이콘을 다시 누르면 해제
+                    selectedIndex[0] = -1;
+
+                    // 원본 이미지 복원
+                    Image originalImg = switch (yutThrowResult) {
+                        case DO     -> safeLoadImage("/fx/result/do.png").getImage();
+                        case GAE    -> safeLoadImage("/fx/result/gae.png").getImage();
+                        case GEOL   -> safeLoadImage("/fx/result/geol.png").getImage();
+                        case YUT    -> safeLoadImage("/fx/result/yut.png").getImage();
+                        case MO     -> safeLoadImage("/fx/result/mo.png").getImage();
+                        case BAK_DO -> safeLoadImage("/fx/result/back.png").getImage();
+                    };
+                    img.setImage(originalImg);
+
+                    // GameBoardView에도 윷 선택 해제
+                    gameBoardView.clearSelectedYutResult();
+
+                } else {
+                    // 새롭게 다른 아이콘을 선택
+                    // 1) 이전 선택 아이콘 해제
+                    if (selectedIndex[0] != -1) {
+                        int old = selectedIndex[0];
+                        YutThrowResult oldTr = results.get(old);
+                        ImageView oldIcon = iconList.get(old);
+
+                        // 원본 복귀
+                        Image oldOriginal = switch (oldTr) {
+                            case DO     -> safeLoadImage("/fx/result/do.png").getImage();
+                            case GAE    -> safeLoadImage("/fx/result/gae.png").getImage();
+                            case GEOL   -> safeLoadImage("/fx/result/geol.png").getImage();
+                            case YUT    -> safeLoadImage("/fx/result/yut.png").getImage();
+                            case MO     -> safeLoadImage("/fx/result/mo.png").getImage();
+                            case BAK_DO -> safeLoadImage("/fx/result/back.png").getImage();
+                        };
+                        oldIcon.setImage(oldOriginal);
+                    }
+
+                    // 2) 현재 아이콘을 선택된 이미지로
+                    selectedIndex[0] = idx;
+                    Image selImg = new Image(getClass().getResourceAsStream(selectedPath));
+                    img.setImage(selImg);
+
+                    // GameBoardView에 "이 윷을 선택했다" 통보
+                    gameBoardView.setSelectedYutResult(yutThrowResult);
+                }
+            });
+
+            // 호버 시 반짝
+            FadeTransition hoverBlink = new FadeTransition(Duration.millis(600), img);
+            hoverBlink.setFromValue(1.0);
+            hoverBlink.setToValue(0.5);
+            hoverBlink.setCycleCount(FadeTransition.INDEFINITE);
+            hoverBlink.setAutoReverse(true);
+
+            img.setOnMouseEntered(e -> hoverBlink.playFromStart());
+            img.setOnMouseExited(e -> {
+                hoverBlink.stop();
+                img.setOpacity(1.0);
+            });
+
+            img.setCursor(Cursor.HAND);
+
+            iconList.add(img);
             resultItemsBox.getChildren().add(img);
         }
     }
+    // =========================== [수정 끝] ==============================================
 
-    private void drawNewButton (){
-        ImageView newBtn = switch(playerIndex){
+    private void drawNewButton() {
+        // 기존 코드: newBtn 생성
+        ImageView newBtn = switch (playerIndex) {
             case 1 -> clickableImage("/fx/button/new_1.png",
                     e -> gameBoardView.onNewPieceButtonClicked());
             case 2 -> clickableImage("/fx/button/new_2.png",
@@ -216,11 +308,20 @@ public class PlayerInform extends Pane{
                     e -> gameBoardView.onNewPieceButtonClicked());
             default -> throw new IllegalStateException("Unexpected value: " + playerIndex);
         };
-        
+
+        // 플레이어가 현재 턴이고 + 아직 새 말이 남아 있으면 활성
+        // 아니라면 disable
+        //boolean canUseNewPiece = (isTurn && nonStartPieceNum > 0);
+        //newBtn.setDisable(!canUseNewPiece);
+
         if (playerIndex < 3){
             newBtn.setTranslateY(5);
         }
+        newPieceButton.getChildren().clear();  // 혹시 기존 버튼 제거
         newPieceButton.getChildren().add(newBtn);
+
+        // ⭐ 초기 상태 설정
+        updateNewPieceButtonState();
     }
 
     private ImageView clickableImage(String path, EventHandler<ActionEvent> act) {
@@ -267,4 +368,33 @@ public class PlayerInform extends Pane{
         }
     }
 
+
+    public void updateNewPieceButtonState() {
+        if (newPieceButton != null && !newPieceButton.getChildren().isEmpty()) {
+            // ★ 수정: 윷 선택 여부와 백도 여부 체크
+            boolean hasSelectedYut = gameBoardView.getCurrentlySelectedYutResult() != null;
+            YutThrowResult selectedYut = gameBoardView.getCurrentlySelectedYutResult();
+            boolean isBackDoSelected = (selectedYut == YutThrowResult.BAK_DO);
+
+            // ★ 수정: 백도가 선택되었으면 New Piece 버튼 비활성화
+            boolean shouldEnable = isTurn && nonStartPieceNum > 0 && hasSelectedYut && !isBackDoSelected;
+
+            System.out.println("Player" + playerIndex + " 새 말 버튼 상태 업데이트 - " +
+                    "Turn: " + isTurn +
+                    ", PieceNum: " + nonStartPieceNum +
+                    ", HasYut: " + hasSelectedYut +
+                    ", SelectedYut: " + selectedYut +
+                    ", IsBackDoSelected: " + isBackDoSelected +
+                    ", Enable: " + shouldEnable);
+
+            // StackPane disable/enable
+            newPieceButton.setDisable(!shouldEnable);
+            newPieceButton.setOpacity(shouldEnable ? 1.0 : 0.5);
+
+            // ImageView도 함께 disable/enable
+            if (newPieceButton.getChildren().get(0) instanceof ImageView imageView) {
+                imageView.setDisable(!shouldEnable);
+            }
+        }
+    }
 }
