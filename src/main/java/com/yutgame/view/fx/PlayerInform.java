@@ -371,14 +371,20 @@ public class PlayerInform extends Pane{
 
     public void updateNewPieceButtonState() {
         if (newPieceButton != null && !newPieceButton.getChildren().isEmpty()) {
-            // ★ 수정: 윷 선택 여부도 고려
+            // ★ 수정: 윷 선택 여부와 백도 여부 체크
             boolean hasSelectedYut = gameBoardView.getCurrentlySelectedYutResult() != null;
-            boolean shouldEnable = isTurn && nonStartPieceNum > 0 && hasSelectedYut;
+            YutThrowResult selectedYut = gameBoardView.getCurrentlySelectedYutResult();
+            boolean isBackDoSelected = (selectedYut == YutThrowResult.BAK_DO);
+
+            // ★ 수정: 백도가 선택되었으면 New Piece 버튼 비활성화
+            boolean shouldEnable = isTurn && nonStartPieceNum > 0 && hasSelectedYut && !isBackDoSelected;
 
             System.out.println("Player" + playerIndex + " 새 말 버튼 상태 업데이트 - " +
                     "Turn: " + isTurn +
                     ", PieceNum: " + nonStartPieceNum +
                     ", HasYut: " + hasSelectedYut +
+                    ", SelectedYut: " + selectedYut +
+                    ", IsBackDoSelected: " + isBackDoSelected +
                     ", Enable: " + shouldEnable);
 
             // StackPane disable/enable
