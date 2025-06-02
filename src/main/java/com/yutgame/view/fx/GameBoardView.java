@@ -590,18 +590,98 @@ public class GameBoardView {
             }
 
             // moveNode 메소드의 노드 클릭 콜백 부분 수정
+            // moveNode 메소드의 노드 클릭 콜백 부분을 다음과 같이 수정
             boardPane.highlightNodes(possibleDestinations, clickedNode -> {
                 System.out.println("=== 노드 클릭 콜백 실행 ===");
                 System.out.println("- 클릭된 노드: " + clickedNode.getId());
+
+                // ★ 추가: 말 잡기 디버깅
+                System.out.println("=== 말 잡기 디버깅 ===");
+                System.out.println("- 목적지 노드: " + clickedNode.getId());
+                System.out.println("- 목적지 노드의 말들:");
+
+                for (Piece occupant : clickedNode.getOccupantPieces()) {
+                    System.out.println("  -> " + occupant + " (소유자: " + occupant.getOwner().getName() + ")");
+                }
+
+                System.out.println("- 현재 플레이어: " + currentPlayer.getName());
+                System.out.println("- 이동하는 말: " + finalTargetPiece + " (소유자: " + finalTargetPiece.getOwner().getName() + ")");
+
+                // 말 잡기 상황인지 확인
+                boolean canCatch = false;
+                for (Piece occupant : clickedNode.getOccupantPieces()) {
+                    if (!occupant.getOwner().equals(finalTargetPiece.getOwner())) {
+                        canCatch = true;
+                        System.out.println("*** 말 잡기 상황 감지! 잡힐 말: " + occupant);
+                    }
+                }
+
+                if (!canCatch && !clickedNode.getOccupantPieces().isEmpty()) {
+                    System.out.println("*** 말 업기 상황 감지!");
+                }
+
+                if (clickedNode.getOccupantPieces().isEmpty()) {
+                    System.out.println("*** 빈 노드로 이동");
+                }
 
                 boardPane.unhighlightNodes(new ArrayList<>(possibleDestinations));
 
                 try {
                     boolean moveSuccess;
 
+                    // ★ 추가: Controller 호출 전후로 노드 상태 확인
+                    System.out.println("=== 이동 전 노드 상태 ===");
+                    System.out.println("목적지 노드 " + clickedNode.getId() + "의 말 개수: " + clickedNode.getOccupantPieces().size());
+                    for (Piece piece : clickedNode.getOccupantPieces()) {
+                        System.out.println("  -> " + piece + " (소유자: " + piece.getOwner().getName() + ")");
+                    }
+
                     if (finalIsNewPiece) {
-                        // ★ Controller의 새 말 전용 메소드 사용
-                        moveSuccess = controller.moveNewPieceToNode(finalTargetPiece, clickedNode, steps);
+                        // ★ 수정: 새 말도 기존 메소드 사용 (빽도 버그 우회)
+                        System.out.println(">>> 새 말 - 기존 메소드 사용 (빽도 버그 우회)");
+
+                        try {
+                            // 1단계: 새 말을 임시로 START_NODE에 배치 (Controller가 인식할 수 있도록)
+                            BoardNode startNode = controller.getBoard().getStartNode();
+
+                            // 리플렉션으로 currentNode 설정
+                            var currentNodeField = finalTargetPiece.getClass().getDeclaredField("currentNode");
+                            currentNodeField.setAccessible(true);
+                            currentNodeField.set(finalTargetPiece, startNode);
+
+                            // pathHistory도 설정
+                            var pathHistoryField = finalTargetPiece.getClass().getDeclaredField("pathHistory");
+                            pathHistoryField.setAccessible(true);
+                            List<BoardNode> tempHistory = new ArrayList<>();
+                            tempHistory.add(startNode);
+                            pathHistoryField.set(finalTargetPiece, tempHistory);
+
+                            System.out.println(">>> 새 말을 임시로 START_NODE에 배치 완료");
+
+                            // 2단계: 이제 기존 메소드 사용 (Controller가 정상 인식할 것임)
+                            if (finishMode && clickedNode.getId().equals("START_NODE")) {
+                                controller.isFinished(finalTargetPiece, clickedNode,
+                                        controller.getBoard().getPaths(), steps);
+                            } else {
+                                if (steps < 0) {
+                                    controller.movePiece(finalTargetPiece, clickedNode, controller.getContainsStartNode());
+                                } else {
+                                    controller.isFinished(finalTargetPiece, clickedNode,
+                                            controller.getBoard().getPaths(), steps);
+                                }
+                            }
+
+                            moveSuccess = true;
+
+                        } catch (Exception e) {
+                            System.err.println(">>> 새 말 기존 메소드 사용 실패: " + e.getMessage());
+                            e.printStackTrace();
+
+                            // 실패 시 새 컨트롤러 메소드로 폴백
+                            System.out.println(">>> 폴백: 새 컨트롤러 메소드 사용");
+                            moveSuccess = controller.moveNewPieceToNode(finalTargetPiece, clickedNode, steps);
+                        }
+
                     } else {
                         // ★ 기존 말은 기존 Controller 메소드 사용
                         try {
@@ -621,6 +701,13 @@ public class GameBoardView {
                             System.err.println("기존 말 이동 실패: " + e.getMessage());
                             moveSuccess = false;
                         }
+                    }
+
+                    // ★ 추가: Controller 호출 후 노드 상태 확인
+                    System.out.println("=== 이동 후 노드 상태 ===");
+                    System.out.println("목적지 노드 " + clickedNode.getId() + "의 말 개수: " + clickedNode.getOccupantPieces().size());
+                    for (Piece piece : clickedNode.getOccupantPieces()) {
+                        System.out.println("  -> " + piece + " (소유자: " + piece.getOwner().getName() + ")");
                     }
 
                     if (!moveSuccess) {

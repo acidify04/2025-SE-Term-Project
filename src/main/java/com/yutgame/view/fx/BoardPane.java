@@ -249,7 +249,7 @@ public class BoardPane extends Pane {
                 } else {
                     // ★ 내 턴이지만 윷 미선택 - 클릭 불가, 안내 효과
                     stackPane.setDisable(true);
-                    stackPane.setOpacity(0.8);
+                    stackPane.setOpacity(1.0);
                     stackPane.setCursor(Cursor.DEFAULT);
                     stackPane.setStyle("-fx-effect: dropshadow(gaussian, lightgray, 3, 0.3, 0, 0);");
 
@@ -267,7 +267,7 @@ public class BoardPane extends Pane {
             } else {
                 // ★ 다른 플레이어의 말들 - 클릭 불가, 많이 흐리게
                 stackPane.setDisable(true);
-                stackPane.setOpacity(0.3);
+                stackPane.setOpacity(0.95);
                 stackPane.setCursor(Cursor.DEFAULT);
                 stackPane.setStyle("");
 
