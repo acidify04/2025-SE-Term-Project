@@ -19,6 +19,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.dto.PieceDecisionResult;
@@ -41,6 +42,28 @@ import javafx.application.Platform;
 import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.HashSet;
+
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ButtonBar;
+import javafx.stage.Modality;
+import javafx.stage.StageStyle;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Button;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.effect.GaussianBlur;
+import javafx.animation.ScaleTransition;
+import javafx.animation.FadeTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.shape.Rectangle;
+import java.util.Optional;
+
 
 public class GameBoardView {
     private YutGameController controller;
@@ -719,6 +742,10 @@ public class GameBoardView {
                         return;
                     }
 
+                    // ★ 추가: 이동 성공 후 즉시 승리 검사
+                    System.out.println(">>> 말 이동 완료 - 승리 검사 시작");
+                    checkGameEndCondition();
+
                     // 이동 성공 후 처리
                     System.out.println(">>> 이동 후 정리 작업");
                     currentResults.remove(chosenResult);
@@ -751,8 +778,45 @@ public class GameBoardView {
         }
     }
 
+    /**
+     * 게임 종료 조건을 검사합니다 (말 이동 후마다 호출)
+     */
+    private void checkGameEndCondition() {
+        System.out.println("=== 게임 종료 조건 검사 시작 ===");
+
+        // 모든 플레이어를 검사하여 승리자가 있는지 확인
+        for (Player player : controller.getGame().getPlayers()) {
+            System.out.println("플레이어 " + player.getName() + " 완주 검사 중...");
+
+            // 해당 플레이어의 모든 말이 완주했는지 확인
+            if (controller.allPiecesFinished(player)) {
+                System.out.println("*** 승리자 발견: " + player.getName() + " ***");
+
+                // 승리 조건 확정
+                controller.checkWin();
+
+                if (controller.isGameOver()) {
+                    String winnerName = controller.getWinner().getName();
+                    System.out.println(">>> 게임 종료 확정 - 승리자: " + winnerName);
+
+                    // 고급 승리 화면 표시
+                    Platform.runLater(() -> {
+                        showSimpleWinnerScreen(winnerName);
+                    });
+
+                    return; // 승리자가 발견되면 더 이상 검사할 필요 없음
+                }
+            }
+        }
+
+        System.out.println("=== 게임 종료 조건 검사 완료 - 승리자 없음 ===");
+    }
+
     private void endTurn() {
         System.out.println(">>> endTurn 호출 - 현재 플레이어: " + controller.getCurrentPlayer().getName());
+
+        // ★ 추가: 턴 종료 전 승리 검사
+        checkGameEndCondition();
 
         // ★ 수정: 턴 종료 처리 강화
         turnInProgress = false; // 다음 플레이어가 윷을 던질 수 있도록
@@ -915,6 +979,58 @@ public class GameBoardView {
         pieceSelectedCallback = null;
     }
 
+    /**
+     * 간단한 승리 화면을 표시합니다
+     */
+    private void showSimpleWinnerScreen(String winnerName) {
+        // 새로운 Stage 생성
+        Stage winStage = new Stage();
+        winStage.initModality(Modality.APPLICATION_MODAL);
+        winStage.initOwner((Stage) scene.getWindow());
+        winStage.setTitle("게임 종료");
+        winStage.setResizable(false);
+
+        // 승리자 표시 라벨
+        Label winnerLabel = new Label("승리자: " + winnerName);
+        winnerLabel.setStyle(
+                "-fx-font-size: 24px; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-text-fill: black; " +
+                        "-fx-text-alignment: center;"
+        );
+
+        // 종료 버튼
+        Button exitButton = new Button("게임 종료");
+        exitButton.setStyle(
+                "-fx-font-size: 16px; " +
+                        "-fx-padding: 10 30 10 30; " +
+                        "-fx-background-color: #f0f0f0; " +
+                        "-fx-border-color: #cccccc; " +
+                        "-fx-border-width: 1;"
+        );
+
+        exitButton.setOnAction(e -> {
+            winStage.close();
+            Platform.exit(); // 프로그램 종료
+        });
+
+        // 레이아웃 - 간단한 VBox
+        VBox layout = new VBox(30);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(40));
+        layout.setStyle("-fx-background-color: white;"); // 흰색 배경
+        layout.getChildren().addAll(winnerLabel, exitButton);
+
+        // Scene 생성
+        Scene winScene = new Scene(layout, 300, 200);
+        winStage.setScene(winScene);
+
+        // 화면 표시
+        winStage.show();
+        winStage.centerOnScreen();
+    }
+
+
     public void selectPiece(Player player, YutThrowResult chosenResult, Consumer<Piece> onPieceSelected) {
         System.out.println("onNewPieceButtonClicked 인스턴스 해시: " + this);
         PieceDecisionResult pieceDecisionResult = controller.getPieceDecisions(player, chosenResult);
@@ -925,16 +1041,16 @@ public class GameBoardView {
         if (controller.allPiecesFinished(player)) {
             controller.checkWin();
             if (controller.isGameOver()) {
-                Alert winAlert = new Alert(Alert.AlertType.INFORMATION);
-                winAlert.setTitle("게임 종료");
-                winAlert.setHeaderText(null);
-                winAlert.setContentText("승리자: " + controller.getWinner().getName());
-                winAlert.showAndWait();
-                Platform.exit();
+                // ★ 수정: 고급 승리 화면 호출
+                Platform.runLater(() -> {
+                    showSimpleWinnerScreen(controller.getWinner().getName());
+                });
+                // Platform.exit(); // 즉시 종료 제거
             }
-            onPieceSelected.accept(null); // 아무 것도 선택할 수 없는 경우
+            onPieceSelected.accept(null);
             return;
         }
+
 
         if (pieceDecisions.isEmpty()) {
             String msg = controller.checkBaekdo(chosenResult)
