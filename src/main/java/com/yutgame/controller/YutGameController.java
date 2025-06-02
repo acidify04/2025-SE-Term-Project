@@ -303,6 +303,60 @@ public class YutGameController {
     }
 
     /**
+     * 말을 완전히 시작 상태로 되돌리는 메소드
+     * @param piece 되돌릴 말
+     * @return 성공 여부
+     */
+    private boolean resetPieceToStart(Piece piece) {
+        try {
+            System.out.println(">>> 말 초기화 시작: " + piece + " (소유자: " + piece.getOwner().getName() + ")");
+
+            // 1. currentNode를 null로 설정 (새로 출발 가능한 상태)
+            if (!setCurrentNodeForPieceSafely(piece, null)) {
+                return false;
+            }
+
+            // 2. pathHistory 완전 초기화
+            try {
+                var pathHistoryField = piece.getClass().getDeclaredField("pathHistory");
+                pathHistoryField.setAccessible(true);
+                pathHistoryField.set(piece, new ArrayList<>());
+                System.out.println(">>> pathHistory 초기화 완료");
+            } catch (NoSuchFieldException e) {
+                System.out.println(">>> pathHistory 필드 없음 - 건너뜀");
+            }
+
+            // 3. started 상태 초기화 (만약 해당 필드가 있다면)
+            try {
+                var startedField = piece.getClass().getDeclaredField("started");
+                startedField.setAccessible(true);
+                startedField.set(piece, false); // 시작하지 않은 상태로
+                System.out.println(">>> started 상태 초기화 완료");
+            } catch (NoSuchFieldException e) {
+                System.out.println(">>> started 필드 없음 - 건너뜀");
+            }
+
+            // 4. finished 상태도 확인 (혹시 모를 경우)
+            try {
+                var finishedField = piece.getClass().getDeclaredField("finished");
+                finishedField.setAccessible(true);
+                finishedField.set(piece, false); // 완주하지 않은 상태로
+                System.out.println(">>> finished 상태 초기화 완료");
+            } catch (NoSuchFieldException e) {
+                System.out.println(">>> finished 필드 없음 - 건너뜀");
+            }
+
+            System.out.println(">>> 말 완전 초기화 성공: " + piece);
+            return true;
+
+        } catch (Exception e) {
+            System.err.println(">>> 말 초기화 실패: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
      * 새 말 전용 이동 메소드 (기존 movePiece의 버그 우회)
      * @param piece 이동할 새 말 (getCurrentNode() == null)
      * @param destination 목적지 노드
@@ -312,6 +366,7 @@ public class YutGameController {
     public boolean moveNewPieceToNode(Piece piece, BoardNode destination, int steps) {
         try {
             System.out.println(">>> Controller - 새 말 전용 이동 처리");
+            System.out.println(">>> 목적지: " + destination.getId() + ", 이동 칸수: " + steps);
 
             // 1. 새 말인지 확인
             if (piece.getCurrentNode() != null) {
@@ -319,56 +374,153 @@ public class YutGameController {
                 return false;
             }
 
-            // 2. 말의 currentNode 설정
-            setCurrentNodeForPiece(piece, destination);
+            // ★ 추가: 말 잡기 & 업기 처리
+            List<Piece> caughtPieces = new ArrayList<>();  // 상대방 말
+            List<Piece> myPieces = new ArrayList<>();      // 본인 말 (업기용)
 
-            // 3. 목적지 노드에 말 추가
-            addPieceToNodeInternal(piece, destination);
+            for (Piece occupant : destination.getOccupantPieces()) {
+                if (!occupant.getOwner().equals(piece.getOwner())) {
+                    // 상대방 말 - 잡기
+                    caughtPieces.add(occupant);
+                    System.out.println(">>> 말 잡기 감지: " + occupant);
+                } else {
+                    // 본인 말 - 업기
+                    myPieces.add(occupant);
+                    System.out.println(">>> 본인 말 업기 감지: " + occupant);
+                }
+            }
 
-            // 4. 말의 상태 설정
-            setPieceStartedInternal(piece, true);
+            // ★ 말 잡기 처리: 상대방 말들을 시작점으로 되돌리기
+            for (Piece caughtPiece : caughtPieces) {
+                destination.getOccupantPieces().remove(caughtPiece);
+
+                // ★ 수정: resetPieceToStart 메소드 사용 (완전한 초기화)
+                if (!resetPieceToStart(caughtPiece)) {
+                    System.err.println(">>> 말 초기화 실패: " + caughtPiece);
+                } else {
+                    System.out.println(">>> 말 잡기 완료: " + caughtPiece + " -> 시작점으로 이동");
+                }
+            }
+
+            // ★ 본인 말 업기는 그대로 두기 (같은 노드에 여러 말 존재 허용)
+            if (!myPieces.isEmpty()) {
+                System.out.println(">>> 본인 말 업기 처리: " + myPieces.size() + "개 말과 함께 이동");
+                // 본인 말들은 그대로 두고 새 말만 추가 (업기 효과)
+            }
+
+            // 2. 목적지 노드에 새 말 추가
+            if (!addPieceToNodeSafely(piece, destination)) {
+                System.err.println(">>> 목적지 노드에 말 추가 실패");
+                return false;
+            }
+
+            // 3. 말의 currentNode 설정
+            if (!setCurrentNodeForPieceSafely(piece, destination)) {
+                System.err.println(">>> currentNode 설정 실패");
+                destination.getOccupantPieces().remove(piece);
+                return false;
+            }
+
+            // 4. 말의 started 상태 설정
+            setPieceStartedSafely(piece, true);
 
             // 5. pathHistory 설정
-            setPathHistoryForNewPiece(piece, destination, steps);
+            if (!setPathHistoryForNewPieceSafely(piece, destination, steps)) {
+                System.err.println(">>> pathHistory 설정 실패");
+                destination.getOccupantPieces().remove(piece);
+                setCurrentNodeForPieceSafely(piece, null);
+                return false;
+            }
 
             System.out.println(">>> 새 말 이동 완료: " + destination.getId());
+
+            // ★ 추가: 결과 정보 출력
+            if (!caughtPieces.isEmpty()) {
+                System.out.println(">>> 말 잡기 발생! 잡힌 말 개수: " + caughtPieces.size());
+            }
+            if (!myPieces.isEmpty()) {
+                System.out.println(">>> 본인 말 업기 발생! 업힌 말 개수: " + myPieces.size());
+            }
+
             return true;
 
         } catch (Exception e) {
             System.err.println(">>> 새 말 이동 실패: " + e.getMessage());
             e.printStackTrace();
+
+            // 실패 시 롤백
+            try {
+                destination.getOccupantPieces().remove(piece);
+                setCurrentNodeForPieceSafely(piece, null);
+            } catch (Exception rollbackException) {
+                System.err.println(">>> 롤백 실패: " + rollbackException.getMessage());
+            }
+
+            return false;
+        }
+    }
+    /**
+     * 노드에 말을 안전하게 추가 (중복 체크)
+     */
+    private boolean addPieceToNodeSafely(Piece piece, BoardNode node) {
+        try {
+            var occupantPiecesField = node.getClass().getDeclaredField("occupantPieces");
+            occupantPiecesField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<Piece> occupantPieces = (List<Piece>) occupantPiecesField.get(node);
+
+            // ★ 중복 체크
+            if (occupantPieces.contains(piece)) {
+                System.out.println(">>> 말이 이미 노드에 있음 - 중복 추가 방지");
+                return true; // 이미 있으면 성공으로 처리
+            }
+
+            occupantPieces.add(piece);
+            System.out.println(">>> 노드에 말 추가 완료: " + node.getId());
+            return true;
+
+        } catch (Exception e) {
+            System.err.println(">>> 노드에 말 추가 실패: " + e.getMessage());
             return false;
         }
     }
 
-    // Private helper methods
-    private void setCurrentNodeForPiece(Piece piece, BoardNode node) throws Exception {
-        var currentNodeField = piece.getClass().getDeclaredField("currentNode");
-        currentNodeField.setAccessible(true);
-        currentNodeField.set(piece, node);
+    /**
+     * currentNode를 안전하게 설정
+     */
+    private boolean setCurrentNodeForPieceSafely(Piece piece, BoardNode node) {
+        try {
+            var currentNodeField = piece.getClass().getDeclaredField("currentNode");
+            currentNodeField.setAccessible(true);
+            currentNodeField.set(piece, node);
+            System.out.println(">>> currentNode 설정 완료: " + (node != null ? node.getId() : "null"));
+            return true;
+        } catch (Exception e) {
+            System.err.println(">>> currentNode 설정 실패: " + e.getMessage());
+            return false;
+        }
     }
 
-    private void addPieceToNodeInternal(Piece piece, BoardNode node) throws Exception {
-        var occupantPiecesField = node.getClass().getDeclaredField("occupantPieces");
-        occupantPiecesField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        List<Piece> occupantPieces = (List<Piece>) occupantPiecesField.get(node);
-        occupantPieces.add(piece);
-    }
-
-    private void setPieceStartedInternal(Piece piece, boolean started) {
+    /**
+     * started 상태를 안전하게 설정
+     */
+    private void setPieceStartedSafely(Piece piece, boolean started) {
         try {
             var startedField = piece.getClass().getDeclaredField("started");
             startedField.setAccessible(true);
             startedField.set(piece, started);
+            System.out.println(">>> started 상태 설정 완료: " + started);
         } catch (NoSuchFieldException e) {
-            // started 필드가 없으면 건너뜀
+            System.out.println(">>> started 필드 없음 - 건너뜀");
         } catch (Exception e) {
-            System.err.println("started 필드 설정 실패: " + e.getMessage());
+            System.err.println(">>> started 필드 설정 실패: " + e.getMessage());
         }
     }
 
-    private void setPathHistoryForNewPiece(Piece piece, BoardNode destination, int steps) {
+    /**
+     * pathHistory를 안전하게 설정 (개선된 버전)
+     */
+    private boolean setPathHistoryForNewPieceSafely(Piece piece, BoardNode destination, int steps) {
         try {
             var pathHistoryField = piece.getClass().getDeclaredField("pathHistory");
             pathHistoryField.setAccessible(true);
@@ -376,39 +528,180 @@ public class YutGameController {
             List<BoardNode> pathHistory = new ArrayList<>();
             BoardNode startNode = this.getBoard().getStartNode();
 
-            // ★ 수정: START_NODE에서 목적지까지의 완전한 경로 설정
-            pathHistory.add(startNode); // 0번째: START_NODE
+            System.out.println(">>> pathHistory 설정 시작 - steps: " + steps);
 
-            // 1칸씩 이동하면서 중간 경로들을 모두 추가
-            BoardNode currentNode = startNode;
-            for (int step = 1; step <= steps; step++) {
-                List<BoardNode> nextNodes = this.getBoard().getPossibleNextNodes(currentNode, 1);
-                if (!nextNodes.isEmpty()) {
-                    currentNode = nextNodes.get(0); // 첫 번째 가능한 다음 노드
-                    pathHistory.add(currentNode);
-                    System.out.println(">>> pathHistory[" + step + "]: " + currentNode.getId());
+            // ★ 수정: 더 안전한 경로 생성
+            if (steps <= 0) {
+                // steps가 0 이하인 경우 (빽도 등) 간단하게 처리
+                pathHistory.add(startNode);
+                pathHistory.add(destination);
+            } else {
+                // 정상적인 전진 이동
+                pathHistory.add(startNode);
+
+                // ★ 개선: 직접 경로 계산 대신 단순하게 처리
+                BoardNode currentNode = startNode;
+                for (int step = 1; step < steps; step++) {
+                    List<BoardNode> nextNodes = this.getBoard().getPossibleNextNodes(currentNode, 1);
+                    if (!nextNodes.isEmpty()) {
+                        // 첫 번째 가능한 노드 선택
+                        currentNode = nextNodes.get(0);
+                        pathHistory.add(currentNode);
+                        System.out.println(">>> pathHistory[" + step + "]: " + currentNode.getId());
+                    } else {
+                        // 다음 노드가 없으면 현재 노드 유지
+                        pathHistory.add(currentNode);
+                    }
                 }
-            }
 
-            // 마지막 노드가 destination과 일치하는지 확인
-            if (!pathHistory.get(pathHistory.size() - 1).equals(destination)) {
-                System.out.println(">>> 경로 불일치 - 목적지를 마지막에 강제 추가");
-                pathHistory.set(pathHistory.size() - 1, destination);
+                // 마지막에 목적지 추가
+                pathHistory.add(destination);
             }
 
             pathHistoryField.set(piece, pathHistory);
 
-            System.out.println(">>> 완전한 pathHistory 설정 완료: " + pathHistory.size() + "개 노드");
+            System.out.println(">>> pathHistory 설정 완료: " + pathHistory.size() + "개 노드");
             for (int i = 0; i < pathHistory.size(); i++) {
                 System.out.println("  [" + i + "] " + pathHistory.get(i).getId());
             }
 
+            return true;
+
         } catch (NoSuchFieldException e) {
             System.out.println(">>> pathHistory 필드 없음 - 건너뜀");
+            return true; // 필드가 없어도 성공으로 처리
         } catch (Exception e) {
-            System.err.println("pathHistory 설정 실패: " + e.getMessage());
+            System.err.println(">>> pathHistory 설정 실패: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
 
+    /**
+     * 지름길 규칙이 적용된 유효한 목적지를 반환 (Model 위임)
+     */
+    public List<BoardNode> getValidDestinations(BoardNode currentNode, int steps) {
+        // Controller는 단순히 Model에 위임 (비즈니스 로직은 Model에)
+        return getBoard().getValidDestinationsWithShortcutRules(currentNode, steps);
+    }
+
+    /**
+     * 말 잡기 상황인지 확인 (Controller가 판단)
+     */
+    public boolean checkIfPieceCaught(Piece movedPiece, BoardNode destination) {
+        // Controller가 비즈니스 로직 처리
+        for (Piece occupant : destination.getOccupantPieces()) {
+            if (!occupant.getOwner().equals(movedPiece.getOwner())) {
+                return true; // 말 잡기 상황
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 업기된 말들을 함께 이동시키는 메소드
+     * @param selectedPiece 선택된 말 (업기된 말들 중 하나)
+     * @param destination 목적지 노드
+     * @param steps 이동할 칸 수
+     * @return 이동 성공 여부
+     */
+    public boolean moveStackedPieces(Piece selectedPiece, BoardNode destination, int steps) {
+        try {
+            System.out.println(">>> Controller - 업기된 말들 함께 이동 처리");
+
+            BoardNode currentNode = selectedPiece.getCurrentNode();
+            if (currentNode == null) {
+                System.err.println("선택된 말이 보드에 없습니다.");
+                return false;
+            }
+
+            // 1. 같은 노드에 있는 본인 말들 찾기 (업기된 말들)
+            List<Piece> stackedPieces = new ArrayList<>();
+            Player owner = selectedPiece.getOwner();
+
+            for (Piece piece : currentNode.getOccupantPieces()) {
+                if (piece.getOwner().equals(owner)) {
+                    stackedPieces.add(piece);
+                    System.out.println(">>> 함께 이동할 말 발견: " + piece);
+                }
+            }
+
+            System.out.println(">>> 총 " + stackedPieces.size() + "개 말이 함께 이동");
+
+            // 2. 목적지에서 상대방 말 잡기 처리
+            List<Piece> caughtPieces = new ArrayList<>();
+            for (Piece occupant : destination.getOccupantPieces()) {
+                if (!occupant.getOwner().equals(owner)) {
+                    caughtPieces.add(occupant);
+                    System.out.println(">>> 잡힐 상대방 말: " + occupant);
+                }
+            }
+
+            // 상대방 말들을 시작점으로 되돌리기
+            for (Piece caughtPiece : caughtPieces) {
+                destination.getOccupantPieces().remove(caughtPiece);
+
+                // ★ 수정: resetPieceToStart 메소드 사용 (완전한 초기화)
+                if (!resetPieceToStart(caughtPiece)) {
+                    System.err.println(">>> 말 초기화 실패: " + caughtPiece);
+                } else {
+                    System.out.println(">>> 상대방 말 잡기 완료: " + caughtPiece);
+                }
+            }
+
+            // 3. 모든 업기된 말들을 함께 이동
+            for (Piece piece : stackedPieces) {
+                // 현재 노드에서 제거
+                currentNode.getOccupantPieces().remove(piece);
+
+                // 목적지로 이동
+                if (!addPieceToNodeSafely(piece, destination)) {
+                    System.err.println(">>> 말 이동 실패: " + piece);
+                    return false;
+                }
+
+                // currentNode 업데이트
+                if (!setCurrentNodeForPieceSafely(piece, destination)) {
+                    System.err.println(">>> currentNode 설정 실패: " + piece);
+                    return false;
+                }
+
+                // pathHistory 업데이트
+                updatePathHistoryForMove(piece, destination);
+
+                System.out.println(">>> 말 이동 완료: " + piece + " -> " + destination.getId());
+            }
+
+            System.out.println(">>> 업기된 말들 함께 이동 완료!");
+            if (!caughtPieces.isEmpty()) {
+                System.out.println(">>> 상대방 말 잡기도 발생!");
+            }
+
+            return true;
+
+        } catch (Exception e) {
+            System.err.println(">>> 업기된 말들 이동 실패: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 말의 pathHistory를 업데이트
+     */
+    private void updatePathHistoryForMove(Piece piece, BoardNode destination) {
+        try {
+            var pathHistoryField = piece.getClass().getDeclaredField("pathHistory");
+            pathHistoryField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<BoardNode> pathHistory = (List<BoardNode>) pathHistoryField.get(piece);
+
+            if (pathHistory != null) {
+                pathHistory.add(destination);
+                System.out.println(">>> pathHistory 업데이트 완료: " + piece);
+            }
+        } catch (Exception e) {
+            System.err.println(">>> pathHistory 업데이트 실패: " + e.getMessage());
+        }
+    }
 }

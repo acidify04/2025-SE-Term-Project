@@ -20,4 +20,12 @@ public interface YutBoard {
 
     // path 리셋
     void pathClear();
+
+    /**
+     * 지름길 규칙이 적용된 유효한 목적지를 반환
+     * @param currentNode 현재 노드
+     * @param steps 이동할 칸 수
+     * @return 지름길 규칙이 적용된 목적지 리스트
+     */
+    List<BoardNode> getValidDestinationsWithShortcutRules(BoardNode currentNode, int steps);
 }

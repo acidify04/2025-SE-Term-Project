@@ -2,6 +2,8 @@ package main.java.com.yutgame.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SquareBoard implements YutBoard {
 
@@ -242,5 +244,47 @@ public class SquareBoard implements YutBoard {
             }
         }
         return result;
+    }
+
+    @Override
+    public List<BoardNode> getValidDestinationsWithShortcutRules(BoardNode currentNode, int steps) {
+        List<BoardNode> allDestinations;
+
+        if (steps < 0) {
+            allDestinations = getPossiblePreviousNodes(currentNode);
+        } else {
+            allDestinations = getPossibleNextNodes(currentNode, steps);
+        }
+
+        return filterByShortcutRules(currentNode, allDestinations);
+    }
+
+    private List<BoardNode> filterByShortcutRules(BoardNode currentNode, List<BoardNode> destinations) {
+        String currentNodeId = currentNode.getId();
+
+        if (isShortcutForbiddenPosition(currentNodeId)) {
+            return destinations.stream()
+                    .filter(dest -> !isShortcutNode(dest.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        return destinations;
+    }
+
+    private boolean isShortcutForbiddenPosition(String nodeId) {
+        Set<String> forbiddenPositions = Set.of(
+                "E1", "E2", "E3", "E4",
+                "N1", "N2", "N3", "N4",
+                "W1", "W2", "W3", "W4",
+                "S1", "S2", "S3", "S4"
+        );
+        return forbiddenPositions.contains(nodeId);
+    }
+
+    private boolean isShortcutNode(String nodeId) {
+        return nodeId.startsWith("NE") ||
+                nodeId.startsWith("NW") ||
+                nodeId.startsWith("SE") ||
+                nodeId.startsWith("SW");
     }
 }

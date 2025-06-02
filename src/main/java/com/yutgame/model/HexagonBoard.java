@@ -2,6 +2,8 @@ package main.java.com.yutgame.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class HexagonBoard implements YutBoard {
     /* ───── 위치/크기 조절 상수 ───── */
@@ -228,5 +230,47 @@ public class HexagonBoard implements YutBoard {
             }
         }
         return result;
+    }
+
+    @Override
+    public List<BoardNode> getValidDestinationsWithShortcutRules(BoardNode currentNode, int steps) {
+        List<BoardNode> allDestinations;
+
+        if (steps < 0) {
+            allDestinations = getPossiblePreviousNodes(currentNode);
+        } else {
+            allDestinations = getPossibleNextNodes(currentNode, steps);
+        }
+
+        return filterByShortcutRules(currentNode, allDestinations);
+    }
+
+    private List<BoardNode> filterByShortcutRules(BoardNode currentNode, List<BoardNode> destinations) {
+        String currentNodeId = currentNode.getId();
+
+        if (isShortcutForbiddenPosition(currentNodeId)) {
+            return destinations.stream()
+                    .filter(dest -> !isShortcutNode(dest.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        return destinations;
+    }
+
+    private boolean isShortcutForbiddenPosition(String nodeId) {
+        Set<String> forbiddenPositions = Set.of(
+                "1", "2", "3", "4", "5", "6", "7", "8",
+                "9", "10", "11", "12", "13", "14", "15", "16",
+                "17", "18", "19", "20", "21", "22", "23", "24"
+        );
+        return forbiddenPositions.contains(nodeId);
+    }
+
+    private boolean isShortcutNode(String nodeId) {
+        Set<String> shortcutNodes = Set.of(
+                "a1", "a2", "b1", "b2", "c1", "c2",
+                "d1", "d2", "e1", "e2", "f1", "f2"
+        );
+        return shortcutNodes.contains(nodeId);
     }
 }

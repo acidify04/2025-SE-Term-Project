@@ -2,6 +2,8 @@ package main.java.com.yutgame.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 오각형 윷놀이판 구현체 - 노드 36개
@@ -230,5 +232,49 @@ public class PentagonBoard implements YutBoard {
             }
         }
         return result;
+    }
+
+    @Override
+    public List<BoardNode> getValidDestinationsWithShortcutRules(BoardNode currentNode, int steps) {
+        List<BoardNode> allDestinations;
+
+        if (steps < 0) {
+            allDestinations = getPossiblePreviousNodes(currentNode);
+        } else {
+            allDestinations = getPossibleNextNodes(currentNode, steps);
+        }
+
+        return filterByShortcutRules(currentNode, allDestinations);
+    }
+
+    private List<BoardNode> filterByShortcutRules(BoardNode currentNode, List<BoardNode> destinations) {
+        String currentNodeId = currentNode.getId();
+
+        if (isShortcutForbiddenPosition(currentNodeId)) {
+            return destinations.stream()
+                    .filter(dest -> !isShortcutNode(dest.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        return destinations;
+    }
+
+    private boolean isShortcutForbiddenPosition(String nodeId) {
+        Set<String> forbiddenPositions = Set.of(
+                "s1", "s2", "s3", "s4",
+                "A1", "A2", "A3", "A4",
+                "B1", "B2", "B3", "B4",
+                "C1", "C2", "C3", "C4",
+                "D1", "D2", "D3", "D4"
+        );
+        return forbiddenPositions.contains(nodeId);
+    }
+
+    private boolean isShortcutNode(String nodeId) {
+        Set<String> shortcutNodes = Set.of(
+                "c1", "c2", "c3", "c4", "c5",
+                "c6", "c7", "c8", "c9", "c10"
+        );
+        return shortcutNodes.contains(nodeId);
     }
 }
