@@ -287,7 +287,7 @@ public class GameBoardView {
             // 2) 버튼 시각 효과
             focus(index);
 
-            // 3) 윷 던지기
+            // 3) 윷 던지기 (turnInProgress 설정을 여기서 하지 말고 성공 후에 설정)
             if (isRandom) {
                 YutThrowResult selected = controller.getRandomYut();
                 isRandomThrow = true;
@@ -307,8 +307,8 @@ public class GameBoardView {
                 });
             }
 
-            // 4) 이번 턴에는 더 이상 윷을 던질 수 없도록 플래그 설정
-            turnInProgress = true;
+            // ★ 수정: 윷 던지기가 성공적으로 처리된 후에만 설정
+            // (빽도로 인한 턴 넘기기가 발생하지 않은 경우에만)
         });
 
         // 호버 이벤트
@@ -348,30 +348,15 @@ public class GameBoardView {
                 alert.setContentText("출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다.");
                 alert.showAndWait();
 
-                // ★ 수정: 간단한 턴 넘기기 처리
-                System.out.println(">>> 빽도 사용 불가 - 턴 넘기기");
-
-                turnInProgress = false; // ★ 추가: 다음 플레이어가 윷을 던질 수 있도록
-
-                // currentResults에 추가하지 않고 바로 턴 넘기기
-                // ★ 수정: turnInProgress는 건드리지 않고 단순히 다음 턴으로
-                isRandomThrow = false;
-
-                // 현재 플레이어 턴 해제
-                if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
-                    PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
-                    playerInform.setIsTurn(false);
-                }
-
-                // 다음 턴으로
-                controller.nextTurn();
-                currentPlayerIndex = controller.getCurrentPlayer().getIndex();
-                repaint(3);
-
-                System.out.println("빽도 사용 불가로 턴 넘기기 완료 - 다음 플레이어: " + controller.getCurrentPlayer().getName());
+                // ★ 수정: endTurn() 메소드 호출로 완전한 턴 종료 처리
+                System.out.println(">>> 빽도 사용 불가 - endTurn() 호출");
+                endTurn();
                 return; // 여기서 메서드 종료
             }
         }
+
+        // ★ 수정: 정상적인 윷 던지기인 경우에만 turnInProgress 설정
+        turnInProgress = true;
 
         // 빽도 사용 가능하거나 다른 결과인 경우 기존 로직 진행
         List<YutThrowResult> results = controller.collectThrowResults(
@@ -389,9 +374,7 @@ public class GameBoardView {
         );
 
         repaint(1);
-        // ★ 추가: 윷 던지기 완료 후 버튼 상태 업데이트
         updateAllPlayerButtonStates();
-
         isRandomThrow = false;
         applyThrowSelections();
     }
@@ -815,10 +798,9 @@ public class GameBoardView {
     private void endTurn() {
         System.out.println(">>> endTurn 호출 - 현재 플레이어: " + controller.getCurrentPlayer().getName());
 
-        // ★ 추가: 턴 종료 전 승리 검사
         checkGameEndCondition();
 
-        // ★ 수정: 턴 종료 처리 강화
+        // ★ 핵심: 턴 종료 처리 강화
         turnInProgress = false; // 다음 플레이어가 윷을 던질 수 있도록
         clearSelectedYutResult(); // 선택된 윷 결과 초기화
         clearPieceSelectionState(); // 말 선택 상태 초기화
@@ -829,14 +811,13 @@ public class GameBoardView {
             boardPane.clearAllHighlights();
         }
 
-        // ★ 추가: 현재 플레이어 턴 해제
+        // 현재 플레이어 턴 해제
         if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
             PlayerInform currentPlayerInform = allPlayerInforms.get(currentPlayerIndex - 1);
             currentPlayerInform.setIsTurn(false);
-            System.out.println(">>> 현재 플레이어 턴 해제: Player" + currentPlayerIndex);
         }
 
-        // ★ 수정: 확실한 다음 턴 처리
+        // 다음 턴으로
         controller.nextTurn();
         currentPlayerIndex = controller.getCurrentPlayer().getIndex();
 
@@ -844,13 +825,10 @@ public class GameBoardView {
         if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
             PlayerInform nextPlayerInform = allPlayerInforms.get(currentPlayerIndex - 1);
             nextPlayerInform.setIsTurn(true);
-            System.out.println(">>> 다음 플레이어 턴 활성화: Player" + currentPlayerIndex);
         }
 
         repaint(3);
         updateAllPlayerButtonStates();
-
-        System.out.println(">>> endTurn 완료 - 새로운 현재 플레이어: " + controller.getCurrentPlayer().getName());
     }
 
     /**
