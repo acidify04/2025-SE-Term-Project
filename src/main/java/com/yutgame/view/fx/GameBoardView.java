@@ -70,6 +70,8 @@ public class GameBoardView {
     private BoardPane boardPane;
     private List<PlayerInform> allPlayerInforms = new ArrayList<>();
 
+    private int boardType; // ★ 추가: 보드 타입 저장
+
     private final Scene scene;
 
     public Scene scene() {
@@ -154,6 +156,7 @@ public class GameBoardView {
      */
     public GameBoardView(YutGameController controller, int boardType, int playerCount, int pieceCount) {
         this.controller = controller;
+        this.boardType = boardType; // ★ 추가: 보드 타입 저장
 
         // 게임판 이미지 그리기
         ImageView board = switch (boardType) {
@@ -1185,86 +1188,106 @@ public class GameBoardView {
      * @param steps 이동 칸 수
      * @return 지름길 규칙이 적용된 목적지
      */
+    /**
+     * 뷰에서 지름길 규칙을 체크하여 목적지를 필터링
+     */
     private List<BoardNode> applyShortcutRulesInView(BoardNode currentNode, List<BoardNode> allDestinations, int steps) {
         String currentNodeId = currentNode.getId();
 
-        System.out.println(">>> 뷰에서 지름길 규칙 적용: " + currentNodeId);
+        System.out.println(">>> 뷰에서 지름길 규칙 적용: " + currentNodeId + " (보드타입: " + boardType + ")");
         System.out.println(">>> 필터링 전 목적지: " + allDestinations.size() + "개");
 
-        // ★ 수정: 꼭짓점이 아닌 위치에서는 지름길 노드 제외
+        // ★ 수정: 보드 타입별로 엄격한 꼭짓점 검사
         if (!isCornerNodeInView(currentNodeId)) {
             List<BoardNode> filteredDestinations = allDestinations.stream()
                     .filter(dest -> !isShortcutNodeInView(dest.getId()))
                     .collect(Collectors.toList());
 
-            System.out.println(">>> 꼭짓점이 아닌 위치 - 지름길 제외됨: " + filteredDestinations.size() + "개");
-            for (BoardNode dest : filteredDestinations) {
-                System.out.println("  -> " + dest.getId() + " (허용)");
-            }
+            System.out.println(">>> 꼭짓점이 아닌 위치(" + currentNodeId + ") - 지름길 제외됨: " + filteredDestinations.size() + "개");
+
+            // ★ 추가: 상세한 디버깅 로그
             for (BoardNode dest : allDestinations) {
-                if (!filteredDestinations.contains(dest)) {
-                    System.out.println("  -> " + dest.getId() + " (지름길 제외)");
-                }
+                boolean isShortcut = isShortcutNodeInView(dest.getId());
+                boolean isFiltered = filteredDestinations.contains(dest);
+                System.out.println("  -> " + dest.getId() + " (" +
+                        (isShortcut ? "지름길" : "일반") + ", " +
+                        (isFiltered ? "허용" : "제외") + ")");
             }
 
             return filteredDestinations;
         }
 
-        System.out.println(">>> 꼭짓점 위치 - 모든 경로 허용 (지름길 포함)");
+        System.out.println(">>> 꼭짓점 위치(" + currentNodeId + ") - 모든 경로 허용 (지름길 포함)");
         return allDestinations;
     }
 
     /**
-     * 꼭짓점 노드인지 확인 (지름길 선택이 가능한 위치)
+     * ★ 수정: 보드 타입별로 꼭짓점 정의를 엄격하게 분리
      */
     private boolean isCornerNodeInView(String nodeId) {
-        // ★ 수정: 꼭짓점 정의
         Set<String> cornerNodes = new HashSet<>();
 
-        // 사각형 보드 꼭짓점
-        cornerNodes.addAll(Set.of(
-                "START_NODE", "EAST", "NORTH", "WEST", "SOUTH"
-        ));
+        switch (this.boardType) {
+            case 0: // 사각형 보드
+                cornerNodes.addAll(Set.of(
+                        "START_NODE", "EAST", "NORTH", "WEST", "SOUTH"
+                ));
+                break;
 
-        // 오각형 보드 꼭짓점
-        cornerNodes.addAll(Set.of(
-                "START_NODE", "A", "B", "C", "D"
-        ));
+            case 1: // 오각형 보드 - 정확한 꼭짓점만 정의
+                cornerNodes.addAll(Set.of(
+                        "START_NODE", "A", "B", "C", "D"
+                ));
+                break;
 
-        // 육각형 보드 꼭짓점 (6개의 주요 모서리)
-        cornerNodes.addAll(Set.of(
-                "START_NODE", "A", "B", "C", "D", "E", "F"
-        ));
+            case 2: // 육각형 보드 - 정확한 꼭짓점만 정의
+                cornerNodes.addAll(Set.of(
+                        "START_NODE", "A", "B", "C", "D", "E", "F"
+                ));
+                break;
+
+            default:
+                System.err.println(">>> 알 수 없는 보드 타입: " + boardType);
+                break;
+        }
 
         boolean isCorner = cornerNodes.contains(nodeId);
-        System.out.println(">>> 노드 " + nodeId + "는 " + (isCorner ? "꼭짓점" : "변의 중간점"));
+        System.out.println(">>> [보드" + boardType + "] 노드 '" + nodeId + "'는 " +
+                (isCorner ? "꼭짓점" : "변의 중간점") + " (꼭짓점 목록: " + cornerNodes + ")");
+
         return isCorner;
     }
 
     /**
-     * 지름길 노드인지 확인 (변경 없음)
+     * ★ 수정: 보드 타입별로 지름길 노드 정의도 분리
+     */
+    /**
+     * ★ 수정: 각 보드별 지름길을 명시적으로 정의
      */
     private boolean isShortcutNodeInView(String nodeId) {
-        // 사각형 보드 지름길
-        if (nodeId.startsWith("NE") || nodeId.startsWith("NW") ||
-                nodeId.startsWith("SE") || nodeId.startsWith("SW")) {
-            return true;
-        }
+        switch (this.boardType) {
+            case 0: // 사각형 보드 지름길
+                Set<String> squareShortcuts = Set.of(
+                        "NE1", "NE2", "NE3", "NW1", "NW2", "NW3",
+                        "SE1", "SE2", "SE3", "SW1", "SW2", "SW3"
+                );
+                return squareShortcuts.contains(nodeId);
 
-        // 오각형 보드 지름길 (c로 시작)
-        if (nodeId.startsWith("c") && nodeId.length() <= 3) {
-            return true;
-        }
+            case 1: // 오각형 보드 지름길 - 모든 지름길 명시
+                Set<String> pentagonShortcuts = Set.of(
+                        "CENTER", "c1", "c2", "c3" // ★ CENTER 명시적 포함
+                );
+                return pentagonShortcuts.contains(nodeId);
 
-        // 육각형 보드 지름길
-        Set<String> hexShortcuts = Set.of(
-                "a1", "a2", "b1", "b2", "c1", "c2",
-                "d1", "d2", "e1", "e2", "f1", "f2"
-        );
-        if (hexShortcuts.contains(nodeId)) {
-            return true;
-        }
+            case 2: // 육각형 보드 지름길
+                Set<String> hexShortcuts = Set.of(
+                        "a1", "a2", "b1", "b2", "c1", "c2",
+                        "d1", "d2", "e1", "e2", "f1", "f2"
+                );
+                return hexShortcuts.contains(nodeId);
 
-        return false;
+            default:
+                return false;
+        }
     }
 }
