@@ -1,5 +1,7 @@
 package main.java.com.yutgame.view.fx;
 
+import javafx.animation.Animation;
+import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -16,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 import main.java.com.yutgame.controller.YutGameController;
 import main.java.com.yutgame.dto.PieceDecisionResult;
@@ -32,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
+import javafx.application.Platform;
 
 public class GameBoardView {
     private YutGameController controller;
@@ -57,6 +61,65 @@ public class GameBoardView {
 
     // 사용자가 Piece를 클릭했을 때 호출할 콜백 함수
     private Consumer<Piece> pieceSelectedCallback;
+
+    private YutThrowResult selectedYutResult = null;
+    private Piece selectedPiece = null; // onPieceClicked()에서 토글로 쓰는 경우
+
+    private boolean turnInProgress = false; // 이번 턴에 윷을 아직 안 던졌으면 false, 던지면 true
+
+    private boolean isCurrentPlayerTurn() {
+        // controller.getCurrentPlayer()의 index가 currentPlayerIndex와 같은지 등
+        return controller.getCurrentPlayer().getIndex() == currentPlayerIndex;
+    }
+
+    public void setSelectedYutResult(YutThrowResult result) {
+        System.out.println(">>> setSelectedYutResult 호출: " + result);
+        System.out.println(">>> 이전 선택된 윷: " + this.selectedYutResult);
+
+        // ★ 수정: 기존에 선택된 윷이 있고 다른 윷을 선택하는 경우에만 하이라이트 해제
+        if (this.selectedYutResult != null && !this.selectedYutResult.equals(result) && boardPane != null) {
+            System.out.println(">>> 다른 윷 선택 - 기존 하이라이트 해제: " + this.selectedYutResult + " -> " + result);
+            boardPane.clearAllHighlights();
+        }
+
+        this.selectedYutResult = result;
+        clearPieceSelectionState();
+        selectedPiece = null;
+
+        // ★ 추가: 윷 선택 후 즉시 말 상태 업데이트
+        System.out.println(">>> 윷 선택 완료 - 말 상태 업데이트 시작");
+        updateAllPlayerButtonStates();
+
+        // ★ 추가: 보드도 다시 그려서 말 클릭 상태 업데이트
+        if (boardPane != null) {
+            boardPane.drawBoard();
+        }
+
+        System.out.println("선택된 윷 결과: " + result);
+    }
+
+    public void clearSelectedYutResult() {
+        this.selectedYutResult = null;
+        // ★ 추가: 말 선택도 해제하고 노드 하이라이트도 해제
+        clearPieceSelectionState();
+        selectedPiece = null;
+
+        // ★ 수정: BoardPane의 public 메소드 사용
+        if (boardPane != null && boardPane.hasHighlightedNodes()) {
+            boardPane.clearAllHighlights();
+        }
+
+        // ★ 추가: 윷 선택 해제 시 모든 플레이어의 버튼 상태 업데이트
+        updateAllPlayerButtonStates();
+
+        System.out.println("윷 선택 해제됨 - 모든 상태 초기화");
+    }
+
+    // PlayerInform가 아닌 GameBoardView 쪽에서 현재 선택된 윷 결과를 가져가기 위해
+    public YutThrowResult getCurrentlySelectedYutResult() {
+        System.out.println(">>> getCurrentlySelectedYutResult 호출 - 현재 선택: " + selectedYutResult);
+        return selectedYutResult;
+    }
 
     /**
      * 윷놀이판 초기 세팅
@@ -159,7 +222,7 @@ public class GameBoardView {
         return boardPane;
     }
 
-    private StackPane drawthrowButton (String imagePath, boolean isRandom){
+    private StackPane drawthrowButton(String imagePath, boolean isRandom) {
         ImageView img = safeLoadImage(imagePath);
         img.setFitWidth(87);
         img.setFitHeight(43);
@@ -171,17 +234,37 @@ public class GameBoardView {
         pane.setMaxSize(90, 45);
         buttonPane.add(pane);
 
-        // 공통 클릭 이벤트
         int index = buttonImg.size() - 1;
         pane.setOnMouseClicked(e -> {
+            // 0) 이미 이번 턴에 윷을 던졌다면
+            if (turnInProgress) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("이미 윷을 던졌습니다");
+                alert.setHeaderText(null);
+                alert.setContentText("이번 턴에 이미 윷을 던졌습니다. 말을 이동하세요!");
+                alert.showAndWait();
+                return;
+            }
+
+            // 1) 자기 턴인지 체크
+            if (!isCurrentPlayerTurn()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("턴 아님");
+                alert.setHeaderText(null);
+                alert.setContentText("지금은 당신의 턴이 아닙니다!");
+                alert.showAndWait();
+                return;
+            }
+
+            // 2) 버튼 시각 효과
             focus(index);
+
+            // 3) 윷 던지기
             if (isRandom) {
                 YutThrowResult selected = controller.getRandomYut();
                 isRandomThrow = true;
                 processAllThrows(selected);
-            }else{
-                // 지정 윷 던지기
-                // TODO 선택 창 만들기
+            } else {
                 List<String> options = List.of("빽도", "도", "개", "걸", "윷", "모");
                 ChoiceDialog<String> dialog = new ChoiceDialog<>("도", options);
                 dialog.setTitle("지정 윷 던지기");
@@ -195,9 +278,12 @@ public class GameBoardView {
                     processAllThrows(selected);
                 });
             }
+
+            // 4) 이번 턴에는 더 이상 윷을 던질 수 없도록 플래그 설정
+            turnInProgress = true;
         });
 
-        // 공통 호버 이벤트
+        // 호버 이벤트
         pane.setCursor(Cursor.HAND);
         pane.setOnMouseEntered(e -> {
             if (!isSelected(index)) {
@@ -221,6 +307,45 @@ public class GameBoardView {
      * 윷·모가 나올 때까지 계속 던지고, 최종 결과 리스트를 반환 (컨트롤러 이용)
      */
     private void processAllThrows(YutThrowResult firstResult) {
+        Player currentPlayer = controller.getCurrentPlayer();
+
+        // 빽도 단독이고 출발하지 않은 말만 있는 경우 미리 체크
+        if (firstResult == YutThrowResult.BAK_DO) {
+            boolean notStarted = controller.getNotStarted(currentPlayer);
+            if (notStarted) {
+                // 빽도 사용 불가 안내 및 즉시 턴 넘기기
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("알림");
+                alert.setHeaderText(null);
+                alert.setContentText("출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다.");
+                alert.showAndWait();
+
+                // ★ 수정: 간단한 턴 넘기기 처리
+                System.out.println(">>> 빽도 사용 불가 - 턴 넘기기");
+
+                turnInProgress = false; // ★ 추가: 다음 플레이어가 윷을 던질 수 있도록
+
+                // currentResults에 추가하지 않고 바로 턴 넘기기
+                // ★ 수정: turnInProgress는 건드리지 않고 단순히 다음 턴으로
+                isRandomThrow = false;
+
+                // 현재 플레이어 턴 해제
+                if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
+                    PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+                    playerInform.setIsTurn(false);
+                }
+
+                // 다음 턴으로
+                controller.nextTurn();
+                currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+                repaint(3);
+
+                System.out.println("빽도 사용 불가로 턴 넘기기 완료 - 다음 플레이어: " + controller.getCurrentPlayer().getName());
+                return; // 여기서 메서드 종료
+            }
+        }
+
+        // 빽도 사용 가능하거나 다른 결과인 경우 기존 로직 진행
         List<YutThrowResult> results = controller.collectThrowResults(
                 firstResult,
                 isRandomThrow,
@@ -234,10 +359,12 @@ public class GameBoardView {
                     alert.showAndWait();
                 }
         );
-        // 현재 플레이어 인덱스를 기반으로 PlayerInform 갱신
+
         repaint(1);
+        // ★ 추가: 윷 던지기 완료 후 버튼 상태 업데이트
+        updateAllPlayerButtonStates();
+
         isRandomThrow = false;
-        // 선택 적용 (예: 말 선택)
         applyThrowSelections();
     }
 
@@ -320,7 +447,7 @@ public class GameBoardView {
         Player currentPlayer = controller.getCurrentPlayer();
 
         // 빽도 단독일 경우, 아직 출발 안한 말만 있을 때 턴 넘김
-        if (currentResults.size() == 1 && currentResults.getFirst() == YutThrowResult.BAK_DO) {
+        if (currentResults.size() == 1 && currentResults.get(0) == YutThrowResult.BAK_DO) {
             boolean notStarted = controller.getNotStarted(currentPlayer);
 
             if (notStarted) {
@@ -330,163 +457,410 @@ public class GameBoardView {
                 alert.setContentText("출발하지 않은 상태에서는 빽도를 사용할 수 없습니다. 턴을 넘깁니다.");
                 alert.showAndWait();
 
+                // ★ 중요: turnInProgress 초기화 추가
+                turnInProgress = false;
+
                 controller.nextTurn();
                 // 기존 highlight 지우기
-                if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+                if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
                     PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
                     playerInform.setIsTurn(false);
                 }
                 currentPlayerIndex = controller.getCurrentPlayer().getIndex();
                 currentResults.clear();
-                System.out.println("출발하지 않은 상태에서 턴 넘기기 nextTurn");
                 repaint(3);
-                System.out.println("플레이어 바뀜" + currentPlayerIndex);
+                System.out.println("출발하지 않은 상태에서 턴 넘기기");
+                System.out.println("플레이어 바뀜 => " + currentPlayerIndex);
                 return;
             }
         }
 
-        if (currentResults.size() > 1) {
-            System.out.println("currentsize > 1 apply 시작 ");
-            // 옵션 리스트 생성
-            String[] options = controller.getChoiceLetters(currentResults);
-            List<String> optionList = Arrays.asList(options);
+        System.out.println("applyThrowSelections() - 윷/말 선택을 기다리는 상태입니다.");
+    }
 
-            ChoiceDialog<String> dialog = new ChoiceDialog<>(options[0], optionList);
-            dialog.setTitle("이동 선택");
-            dialog.setHeaderText(null);
-            dialog.setContentText("몇 칸 이동하시겠습니까?");
-            Optional<String> result = dialog.showAndWait();
+    public void goNext() {
+        // ★ 수정: 간단한 다음 턴 처리
+        System.out.println(">>> goNext 호출");
 
-            if (result.isEmpty()) System.out.println("results가 비어있습니다.");
+        currentPlayerIndex = controller.getCurrentPlayer().getIndex();
+        repaint(3);
 
-            String choiceStr = result.get();
-            int choiceIndex = optionList.indexOf(choiceStr);
-            YutThrowResult chosen = currentResults.get(choiceIndex);
+        // ★ 수정: turnInProgress는 건드리지 않음 (자연스러운 턴 진행 유지)
+        System.out.println(">>> goNext 완료 - 현재 플레이어: " + controller.getCurrentPlayer().getName());
+    }
 
-            boolean notStarted = controller.getNotStarted(currentPlayer);
-            if (chosen == YutThrowResult.BAK_DO && notStarted) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("경고");
+    public int getCurrentPlayerIndex() {
+        return currentPlayerIndex;
+    }
+
+    private void moveNode(Player currentPlayer, YutThrowResult chosenResult, Piece selectedPiece) {
+        System.out.println("=== moveNode 시작 ===");
+        System.out.println("- chosenResult: " + chosenResult);
+        System.out.println("- selectedPiece: " + selectedPiece);
+        System.out.println("- currentPlayer: " + currentPlayer.getName());
+
+        // ★ 추가: moveNode 시작 시 기존 하이라이트 완전 정리
+        if (boardPane != null) {
+            System.out.println(">>> moveNode 시작 - 기존 하이라이트 정리");
+            boardPane.clearAllHighlights();
+        }
+
+        final int steps = controller.getSteps(chosenResult);
+        System.out.println("- steps: " + steps);
+
+        List<BoardNode> possibleDestinations;
+
+        // ★ 수정: selectedPiece가 null인 경우 (새 말) 처리 개선
+        if (selectedPiece == null) {
+            System.out.println(">>> 새 말 처리 - 직접 새 말 찾기");
+
+            // ★ 수정: 매번 새로운 PieceDecisions 호출로 최신 상태 가져오기
+            var pieceDecisions = controller.getPieceDecisions(currentPlayer, chosenResult);
+            System.out.println(">>> PieceDecisions 타입: " + pieceDecisions.getClass().getSimpleName());
+            System.out.println(">>> PieceDecisions toString: " + pieceDecisions.toString());
+
+            // ★ 새 말을 직접 찾는 로직 (이미 보드에 나온 말 제외)
+            try {
+                // choices 필드에 접근해보기
+                var choicesField = pieceDecisions.getClass().getDeclaredField("choices");
+                choicesField.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                List<Piece> choices = (List<Piece>) choicesField.get(pieceDecisions);
+
+                System.out.println(">>> choices 개수: " + choices.size());
+                for (int i = 0; i < choices.size(); i++) {
+                    Piece piece = choices.get(i);
+                    System.out.println("  [" + i + "] " + piece + " - currentNode: " + piece.getCurrentNode() + ", finished: " + piece.isFinished());
+                }
+
+                // ★ 수정: 새 말 찾기 (getCurrentNode가 null이고 finished가 false인 말)
+                selectedPiece = null;
+                for (Piece piece : choices) {
+                    if (piece.getCurrentNode() == null && !piece.isFinished()) {
+                        selectedPiece = piece;
+                        System.out.println(">>> 사용 가능한 새 말 발견: " + piece);
+                        break;
+                    }
+                }
+
+                // ★ 추가: 새 말이 없으면 보드에 있는 말 중에서 선택
+                if (selectedPiece == null && !choices.isEmpty()) {
+                    // 보드에 있는 말 중에서 이동 가능한 말 찾기
+                    for (Piece piece : choices) {
+                        if (piece.getCurrentNode() != null && !piece.isFinished()) {
+                            System.out.println(">>> 새 말이 없어서 보드에 있는 말 사용: " + piece);
+                            selectedPiece = piece;
+                            break;
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                System.err.println(">>> 말 찾기 실패: " + e.getMessage());
+                e.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("오류");
                 alert.setHeaderText(null);
-                alert.setContentText("출발하지 않은 상태에서는 빽도를 선택할 수 없습니다.");
+                alert.setContentText("사용 가능한 말을 찾을 수 없습니다: " + e.getMessage());
+                alert.showAndWait();
+                return;
+            }
+
+            if (selectedPiece == null) {
+                System.err.println(">>> 사용 가능한 말이 전혀 없음");
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("이동 불가");
+                alert.setHeaderText(null);
+                alert.setContentText("이동할 수 있는 말이 없습니다!");
+                alert.showAndWait();
+
+                // ★ 추가: 사용 불가능하면 윷 제거하고 턴 체크
+                currentResults.remove(chosenResult);
+                clearSelectedYutResult();
+                repaint(1);
+                if (currentResults.isEmpty()) {
+                    endTurn();
+                }
+                return;
+            }
+
+            // 새 말은 START_NODE에서 시작, 기존 말은 현재 위치에서 시작
+            BoardNode startNode;
+            if (selectedPiece.getCurrentNode() == null) {
+                startNode = controller.getBoard().getStartNode();
+                System.out.println(">>> 새 말: START_NODE에서 시작");
+            } else {
+                startNode = selectedPiece.getCurrentNode();
+                System.out.println(">>> 기존 말: " + startNode.getId() + "에서 시작");
+            }
+
+            possibleDestinations = controller.getBoard().getPossibleNextNodes(startNode, steps);
+            System.out.println(">>> " + startNode.getId() + "에서 " + steps + "칸 이동 가능한 노드들");
+
+        } else {
+            System.out.println(">>> 기존 말 처리");
+            BoardNode curr = selectedPiece.getCurrentNode();
+            if (curr == null) {
+                curr = controller.getBoard().getStartNode();
+                System.out.println("- 현재 노드가 null이어서 START_NODE로 설정");
+            }
+            System.out.println("- 현재 노드: " + curr.getId());
+
+            possibleDestinations = (steps < 0)
+                    ? controller.getBoard().getPossiblePreviousNodes(curr)
+                    : controller.getBoard().getPossibleNextNodes(curr, steps);
+        }
+
+        System.out.println("- 가능한 목적지 개수: " + possibleDestinations.size());
+        for (BoardNode dest : possibleDestinations) {
+            System.out.println("  -> " + dest.getId());
+        }
+
+        if (possibleDestinations.isEmpty()) {
+            System.out.println(">>> 이동할 노드가 없음 - 윷 제거하고 턴 체크");
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("이동 불가");
+            alert.setHeaderText(null);
+            alert.setContentText("이동할 수 있는 곳이 없습니다!");
+            alert.showAndWait();
+
+            currentResults.remove(chosenResult);
+            clearSelectedYutResult();
+            repaint(1);
+            if (currentResults.isEmpty()) {
+                endTurn();
+            }
+            return;
+        }
+
+        final boolean finishMode = possibleDestinations.contains(controller.getBoard().getStartNode());
+        System.out.println("- 완주 모드: " + finishMode);
+
+        // ★ selectedPiece를 final로 만들어서 람다에서 사용 가능하게
+        final Piece finalSelectedPiece = selectedPiece;
+
+        System.out.println(">>> highlightNodes 호출 시작");
+        System.out.println(">>> boardPane null 체크: " + (boardPane != null));
+
+        // ★ 추가: 기존 하이라이트 해제
+        if (boardPane != null) {
+            boardPane.clearAllHighlights();
+        }
+
+        // moveNode() 메소드의 노드 클릭 콜백 부분을 수정
+        boardPane.highlightNodes(possibleDestinations, clickedNode -> {
+            System.out.println("=== 노드 클릭 콜백 실행 ===");
+            System.out.println("- 클릭된 노드: " + clickedNode.getId());
+
+            // 하이라이트 해제
+            System.out.println(">>> 하이라이트 해제 시작");
+            boardPane.unhighlightNodes(new ArrayList<>(possibleDestinations));
+
+            try {
+                // 말 이동 처리
+                if (finishMode && clickedNode.getId().equals("START_NODE")) {
+                    System.out.println(">>> 완주 처리");
+                    controller.isFinished(finalSelectedPiece, clickedNode,
+                            controller.getBoard().getPaths(), steps);
+                } else {
+                    System.out.println(">>> 일반 이동 처리");
+                    if (steps < 0) {
+                        controller.movePiece(finalSelectedPiece, clickedNode, controller.getContainsStartNode());
+                    } else {
+                        controller.isFinished(finalSelectedPiece, clickedNode,
+                                controller.getBoard().getPaths(), steps);
+                    }
+                }
+
+                // ★ 수정: 이동 성공 후 처리 개선
+                System.out.println(">>> 이동 후 정리 작업 시작");
+
+                // 사용된 윷 제거
+                currentResults.remove(chosenResult);
+                clearSelectedYutResult();
+                clearPieceSelectionState();
+
+                // 화면 업데이트
+                repaint(1); // 윷 결과 업데이트
+                repaint(2); // 말 개수 업데이트
+                boardPane.drawBoard(); // 보드 다시 그리기
+
+                // ★ 수정: 남은 윷이 있어도 일단 턴 종료 처리 확인
+                System.out.println(">>> 남은 윷 개수: " + currentResults.size());
+                if (currentResults.isEmpty()) {
+                    System.out.println(">>> 남은 윷 없음 - 턴 종료");
+                    endTurn(); // 확실한 턴 종료
+                } else {
+                    System.out.println(">>> 남은 윷 있음 - 계속 진행");
+                    // 남은 윷이 있으면 계속 진행
+                    updateAllPlayerButtonStates();
+                }
+
+            } catch (Exception e) {
+                System.err.println(">>> 말 이동 실패: " + e.getMessage());
+                e.printStackTrace();
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("이동 실패");
+                alert.setHeaderText(null);
+                alert.setContentText("말 이동에 실패했습니다: " + e.getMessage());
                 alert.showAndWait();
             }
 
-            moveNode(currentPlayer, chosen);
+        }, finishMode);
 
-            // 현재 선택한 결과 인덱스를 기반으로 PlayerInform 갱신
-            repaint(1);
-
-        } else {
-            System.out.println("currentsize = 1 apply 시작 ");
-            System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
-            moveNode(currentPlayer, currentResults.get(0));
-        }
+        System.out.println(">>> highlightNodes 호출 완료");
+        System.out.println("=== moveNode 종료 ===");
     }
 
-    private void goNext(){
-        if (controller.isGameOver()) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("게임 종료");
-            alert.setHeaderText(null);
-            alert.setContentText("승리자: " + controller.getWinner().getName());
-            alert.showAndWait();
-            Platform.exit(); // JavaFX용 종료
-        } else {
-            System.out.println("goNext()에서 nextTurn");
-            controller.nextTurn();
-            // 기존 highlight 지우기
-            if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
-                PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
-                playerInform.setIsTurn(false);
-            }
-            currentPlayerIndex = controller.getCurrentPlayer().getIndex();
-            currentResults.clear();
-            repaint(3);
-            System.out.println("플레이어 바뀜" + currentPlayerIndex);
+    private void endTurn() {
+        System.out.println(">>> endTurn 호출 - 현재 플레이어: " + controller.getCurrentPlayer().getName());
+
+        // ★ 수정: 턴 종료 처리 강화
+        turnInProgress = false; // 다음 플레이어가 윷을 던질 수 있도록
+        clearSelectedYutResult(); // 선택된 윷 결과 초기화
+        clearPieceSelectionState(); // 말 선택 상태 초기화
+        currentResults.clear(); // 현재 결과 목록도 초기화
+
+        // 하이라이트도 정리
+        if (boardPane != null) {
+            boardPane.clearAllHighlights();
         }
-    }
 
-    private void moveNode(Player currentPlayer, YutThrowResult chosenResult) {
-        System.out.println("moveNode 시작 - currentResults : " + currentResults.size());
+        // ★ 추가: 현재 플레이어 턴 해제
+        if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
+            PlayerInform currentPlayerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+            currentPlayerInform.setIsTurn(false);
+            System.out.println(">>> 현재 플레이어 턴 해제: Player" + currentPlayerIndex);
+        }
 
-        selectPiece(currentPlayer, chosenResult, selected -> {
-            System.out.println("select시작");
-            System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
-            if (selected == null) {
-                System.out.println("selected is null");
-                return;
-            }
-            System.out.println("getSteps 시작");
-            int steps = controller.getSteps(chosenResult);
-            BoardNode curr = selected.getCurrentNode();
-            if (curr == null) curr = controller.getBoard().getStartNode();
+        // ★ 수정: 확실한 다음 턴 처리
+        controller.nextTurn();
+        currentPlayerIndex = controller.getCurrentPlayer().getIndex();
 
-            if (steps < 0) {
-                List<BoardNode> prevs = controller.getBoard().getPossiblePreviousNodes(curr);
-                BoardNode dest = prevs.size() == 1 ? prevs.get(0) : chooseDestination(prevs, "빽도 이동", -1);
-                if (dest != null)
-                    System.out.println("movePiece 시작");
-                    controller.movePiece(selected, dest, controller.getContainsStartNode());
-            } else {
-                List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
-                List<BoardNode> path = controller.getBoard().getPaths();
-                List<List<BoardNode>> paths = controller.splitPath(path, steps);
+        // 다음 플레이어 턴 활성화
+        if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
+            PlayerInform nextPlayerInform = allPlayerInforms.get(currentPlayerIndex - 1);
+            nextPlayerInform.setIsTurn(true);
+            System.out.println(">>> 다음 플레이어 턴 활성화: Player" + currentPlayerIndex);
+        }
 
-                int canFinishIndex = controller.checkCanFinishIndex(paths, path);
+        repaint(3);
+        updateAllPlayerButtonStates();
 
-                BoardNode dest;
-                if (controller.isCrossroad(curr) && cans.size() > 1) {
-                    dest = chooseDestination(cans, "갈림길 선택", canFinishIndex);
-                } else {
-                    dest = cans.isEmpty() ? null : cans.get(0);
-                }
-
-                if (dest != null) {
-                    controller.isFinished(selected, dest, path, steps);
-                }
-            }
-            currentResults.remove(chosenResult);
-            repaint(1);
-            repaint(2);
-            boardPane.drawBoard();
-
-            if (currentResults.size() == 0) {
-                goNext();
-            } else {
-                System.out.println("apply");
-                System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
-                Platform.runLater(() -> applyThrowSelections());
-            }
-        });
+        System.out.println(">>> endTurn 완료 - 새로운 현재 플레이어: " + controller.getCurrentPlayer().getName());
     }
 
     /**
      * new Piece 버튼 클릭 시 실행
      */
     public void onNewPieceButtonClicked() {
-        System.out.println("onNewPieceButtonClicked 인스턴스 해시: " + this);
-        System.out.println("new 클릭");
-        System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
-        if (waitingPieceChoices != null && !waitingPieceChoices.isEmpty() && pieceSelectedCallback != null) {
-            System.out.println("콜백시도");
-            pieceSelectedCallback.accept(waitingPieceChoices.get(0));
-            clearPieceSelectionState();
+        System.out.println("[New Piece] 버튼 클릭됨");
+
+        // 0) 자기 턴인지 체크
+        if (!isCurrentPlayerTurn()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("턴 아님");
+            alert.setHeaderText(null);
+            alert.setContentText("지금은 당신의 턴이 아닙니다!");
+            alert.showAndWait();
+            return;
         }
+
+        // 1) 윷 결과가 없다면 경고
+        if (currentResults.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("이동 불가");
+            alert.setHeaderText(null);
+            alert.setContentText("윷을 먼저 던져주세요!");
+            alert.showAndWait();
+            return;
+        }
+
+        // 2) 윷을 선택했는지 확인
+        YutThrowResult chosenResult = getCurrentlySelectedYutResult();
+        if (chosenResult == null) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("이동 불가");
+            alert.setHeaderText(null);
+            alert.setContentText("사용할 윷(도/개/걸/윷/모/빽도)을 먼저 선택해주세요!");
+            alert.showAndWait();
+            return;
+        }
+
+        // 3) '새 말'이 남아 있는지 검사
+        Player currentPlayer = controller.getCurrentPlayer();
+        if (currentPlayer.getNonStartPiecesNum() <= 0) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("새 말 없음");
+            alert.setHeaderText(null);
+            alert.setContentText("더 이상 출발할 수 있는 말이 없습니다!");
+            alert.showAndWait();
+            return;
+        }
+
+        // ★ 수정: null을 전달해서 selectPiece가 새 말을 선택하도록 함
+        System.out.println(">>> 새 말로 moveNode 호출");
+        moveNode(currentPlayer, chosenResult, null); // null = 새 말 선택 필요
     }
 
     /**
      * 노드 위의 말 선택 시 실행
      */
     public void onPieceClicked(Piece clickedPiece) {
-        System.out.println("클릭한 말: " + clickedPiece.getCurrentNode());
-        System.out.println("선택 대기 중인 말: " + waitingPieceChoices);
-        if (waitingPieceChoices != null && pieceSelectedCallback != null &&
-                waitingPieceChoices.contains(clickedPiece)) {
-            System.out.println("콜백시도");
-            pieceSelectedCallback.accept(clickedPiece);
-            clearPieceSelectionState();
+        System.out.println("=== 말 클릭 이벤트 ===");
+        System.out.println("- 클릭된 말: " + clickedPiece + " (Player " + clickedPiece.getOwner().getIndex() + ")");
+        System.out.println("- 현재 플레이어: " + controller.getCurrentPlayer().getIndex());
+
+        // 0) 자기 턴인지 체크
+        if (!isCurrentPlayerTurn()) {
+            System.out.println(">>> 턴 아님 - 경고");
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("턴 아님");
+            alert.setHeaderText(null);
+            alert.setContentText("지금은 당신의 턴이 아닙니다!");
+            alert.showAndWait();
+            return;
         }
+
+        // ★ 내 말인지 확인
+        if (clickedPiece.getOwner().getIndex() != getCurrentPlayerIndex()) {
+            System.out.println(">>> 다른 플레이어의 말 - 경고");
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("다른 플레이어의 말");
+            alert.setHeaderText(null);
+            alert.setContentText("자신의 말만 선택할 수 있습니다!");
+            alert.showAndWait();
+            return;
+        }
+
+        // 1) 윷 결과가 없다면 경고
+        if (currentResults.isEmpty()) {
+            System.out.println(">>> 윷 결과 없음 - 경고");
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("이동 불가");
+            alert.setHeaderText(null);
+            alert.setContentText("윷을 먼저 던져주세요!");
+            alert.showAndWait();
+            return;
+        }
+
+        // 2) ★ 수정: 윷을 고르지 않았다면 명확한 안내
+        YutThrowResult chosenResult = getCurrentlySelectedYutResult();
+        if (chosenResult == null) {
+            System.out.println(">>> 윷 선택 안됨 - 명확한 안내");
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("윷 선택 필요");
+            alert.setHeaderText("먼저 윷을 선택해주세요!");
+            alert.setContentText("화면 우측에 있는 윷 결과 버튼(도/개/걸/윷/모) 중 하나를 클릭한 후,\n다시 말을 선택해주세요.");
+            alert.showAndWait();
+            return;
+        }
+
+        System.out.println(">>> 말 클릭 검증 통과 - moveNode 호출");
+        System.out.println(">>> 플로우: 윷 던지기 ✓ → 윷 선택 ✓ → 말 선택 ✓ → 노드 선택 대기");
+        moveNode(controller.getCurrentPlayer(), chosenResult, clickedPiece);
     }
 
     private void clearPieceSelectionState() {
@@ -526,6 +900,9 @@ public class GameBoardView {
             alert.setContentText(msg);
             alert.showAndWait();
 
+            // ★ 중요: turnInProgress 초기화 추가
+            turnInProgress = false;
+
             System.out.println("이동가능한 말 없음 : nextTurn");
             controller.nextTurn();
             if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
@@ -548,25 +925,10 @@ public class GameBoardView {
 
 
     private BoardNode chooseDestination(List<BoardNode> cands, String title, int finishIndex) {
-        if (cands.size() == 1) return cands.getFirst();
-
-        List<String> options = new ArrayList<>();
-        for (int i = 0; i < cands.size(); i++) {
-            String name = cands.get(i).getId();
-            if (i == finishIndex) name += " (Finish)";
-            options.add(name);
-        }
-
-        ChoiceDialog<String> dialog = new ChoiceDialog<>(options.get(0), options);
-        dialog.setTitle(title);
-        dialog.setHeaderText(null);
-        dialog.setContentText("이동할 노드를 선택하세요:");
-
-        Optional<String> result = dialog.showAndWait();
-        if (result.isEmpty()) return null;
-
-        int choiceIndex = options.indexOf(result.get());
-        return (choiceIndex < 0 || choiceIndex >= cands.size()) ? null : cands.get(choiceIndex);
+        // 팝업 대신 PlayerInform 등의 UI를 통해 선택되도록 변경
+        // 여기서는 임시로 첫 번째 노드를 반환
+        if (cands.isEmpty()) return null;
+        return cands.get(0);
     }
 
     private boolean isSelected(int index) {
@@ -619,9 +981,9 @@ public class GameBoardView {
         }
     }
 
-    private void repaint(int change){    // 1 : 결과판 2 : 모든 플레이어의 피스, 3 : 플레이어
+    private void repaint(int change){
         System.out.println("현재 플레이어 인덱스 : " + currentPlayerIndex);
-        if (currentPlayerIndex > 0 && currentPlayerIndex <= allPlayerInforms.size()) {
+        if (currentPlayerIndex >= 1 && currentPlayerIndex <= allPlayerInforms.size()) {
             PlayerInform playerInform = allPlayerInforms.get(currentPlayerIndex - 1);
             if (playerInform != null) {
                 switch (change){
@@ -630,7 +992,7 @@ public class GameBoardView {
                         break;
                     case 2:
                         System.out.println("setNonStartPieceNum");
-                        for (int i=0; i < allPlayerInforms.size(); i++){
+                        for (int i = 0; i < allPlayerInforms.size(); i++){
                             Player player = controller.getGame().getPlayers().get(i);
                             int nonStartPieceNum = player.getNonStartPiecesNum();
                             PlayerInform eachPlayer = allPlayerInforms.get(i);
@@ -639,7 +1001,13 @@ public class GameBoardView {
                         break;
                     case 3:
                         System.out.println("턴 넘어감 setIsTurn");
+                        // 모든 플레이어 턴 해제 후 현재 플레이어만 활성화
+                        for (PlayerInform info : allPlayerInforms) {
+                            info.setIsTurn(false);
+                        }
                         playerInform.setIsTurn(true);
+                        // ★ 추가: 턴 전환 시 모든 플레이어 버튼 상태 업데이트
+                        updateAllPlayerButtonStates();
                         break;
                 }
             } else {
@@ -648,5 +1016,24 @@ public class GameBoardView {
         } else {
             System.err.println("유효하지 않은 플레이어 인덱스입니다: " + currentPlayerIndex);
         }
+    }
+
+    /**
+     * 모든 플레이어의 New Piece 버튼 상태를 업데이트
+     */
+    public void updateAllPlayerButtonStates() {
+        for (PlayerInform playerInform : allPlayerInforms) {
+            if (playerInform != null) {
+                playerInform.updateNewPieceButtonState();
+            }
+        }
+        System.out.println("모든 플레이어 버튼 상태 업데이트 완료");
+    }
+
+    /**
+     * 현재 하이라이트가 활성화되어 있는지 확인
+     */
+    public boolean isHighlightActive() {
+        return boardPane != null && boardPane.hasHighlightedNodes();
     }
 }
