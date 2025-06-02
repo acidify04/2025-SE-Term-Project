@@ -1191,13 +1191,13 @@ public class GameBoardView {
         System.out.println(">>> 뷰에서 지름길 규칙 적용: " + currentNodeId);
         System.out.println(">>> 필터링 전 목적지: " + allDestinations.size() + "개");
 
-        // 지름길 사용 금지 위치에서는 지름길 노드 제외
-        if (isShortcutForbiddenPositionInView(currentNodeId)) {
+        // ★ 수정: 꼭짓점이 아닌 위치에서는 지름길 노드 제외
+        if (!isCornerNodeInView(currentNodeId)) {
             List<BoardNode> filteredDestinations = allDestinations.stream()
                     .filter(dest -> !isShortcutNodeInView(dest.getId()))
                     .collect(Collectors.toList());
 
-            System.out.println(">>> 지름길 필터링 적용됨 - 결과: " + filteredDestinations.size() + "개");
+            System.out.println(">>> 꼭짓점이 아닌 위치 - 지름길 제외됨: " + filteredDestinations.size() + "개");
             for (BoardNode dest : filteredDestinations) {
                 System.out.println("  -> " + dest.getId() + " (허용)");
             }
@@ -1210,46 +1210,39 @@ public class GameBoardView {
             return filteredDestinations;
         }
 
-        System.out.println(">>> 지름길 제한 없음 - 모든 경로 허용");
+        System.out.println(">>> 꼭짓점 위치 - 모든 경로 허용 (지름길 포함)");
         return allDestinations;
     }
 
     /**
-     * 지름길 사용이 금지된 위치인지 확인
+     * 꼭짓점 노드인지 확인 (지름길 선택이 가능한 위치)
      */
-    private boolean isShortcutForbiddenPositionInView(String nodeId) {
-        // ★ 현재 보드 타입에 따라 다르게 처리
-        Set<String> forbiddenPositions = new HashSet<>();
+    private boolean isCornerNodeInView(String nodeId) {
+        // ★ 수정: 꼭짓점 정의
+        Set<String> cornerNodes = new HashSet<>();
 
-        // 사각형 보드 (기본)
-        forbiddenPositions.addAll(Set.of(
-                "E1", "E2", "E3", "E4",  // 동쪽 변
-                "N1", "N2", "N3", "N4",  // 북쪽 변
-                "W1", "W2", "W3", "W4",  // 서쪽 변
-                "S1", "S2", "S3", "S4"   // 남쪽 변
+        // 사각형 보드 꼭짓점
+        cornerNodes.addAll(Set.of(
+                "START_NODE", "EAST", "NORTH", "WEST", "SOUTH"
         ));
 
-        // 오각형 보드
-        forbiddenPositions.addAll(Set.of(
-                "s1", "s2", "s3", "s4",    // START_NODE에서 A로 가는 변
-                "A1", "A2", "A3", "A4",    // A에서 B로 가는 변
-                "B1", "B2", "B3", "B4",    // B에서 C로 가는 변
-                "C1", "C2", "C3", "C4",    // C에서 D로 가는 변
-                "D1", "D2", "D3", "D4"     // D에서 START_NODE로 가는 변
+        // 오각형 보드 꼭짓점
+        cornerNodes.addAll(Set.of(
+                "START_NODE", "A", "B", "C", "D"
         ));
 
-        // 육각형 보드
-        forbiddenPositions.addAll(Set.of(
-                "1", "2", "3", "4", "5", "6", "7", "8",
-                "9", "10", "11", "12", "13", "14", "15", "16",
-                "17", "18", "19", "20", "21", "22", "23", "24"
+        // 육각형 보드 꼭짓점 (6개의 주요 모서리)
+        cornerNodes.addAll(Set.of(
+                "START_NODE", "A", "B", "C", "D", "E", "F"
         ));
 
-        return forbiddenPositions.contains(nodeId);
+        boolean isCorner = cornerNodes.contains(nodeId);
+        System.out.println(">>> 노드 " + nodeId + "는 " + (isCorner ? "꼭짓점" : "변의 중간점"));
+        return isCorner;
     }
 
     /**
-     * 지름길 노드인지 확인
+     * 지름길 노드인지 확인 (변경 없음)
      */
     private boolean isShortcutNodeInView(String nodeId) {
         // 사각형 보드 지름길
