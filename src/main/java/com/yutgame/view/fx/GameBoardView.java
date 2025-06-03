@@ -567,15 +567,8 @@ public class GameBoardView {
                     return;
                 }
 
-                if (prevs.size() == 1) {
-                    // 선택지가 하나뿐이면 바로 이동
-                    BoardNode dest = prevs.get(0);
-                    controller.movePiece(selected, dest, controller.getContainsStartNode());
-                    handleMoveSuccess(chosenResult);
-                } else {
-                    // 여러 선택지가 있으면 노드 하이라이팅
-                    highlightDestinations(prevs, chosenResult, selected, false);
-                }
+                // 항상 노드 하이라이팅을 통해 선택
+                highlightDestinations(prevs, chosenResult, selected, false);
 
             } else {
                 // 정방향 이동 처리
@@ -604,15 +597,8 @@ public class GameBoardView {
                 int canFinishIndex = controller.checkCanFinishIndex(paths, path);
                 boolean finishMode = canFinishIndex >= 0;
 
-                if (controller.isCrossroad(curr) && cans.size() > 1) {
-                    // 갈림길인 경우 노드 하이라이팅
-                    highlightDestinations(cans, chosenResult, selected, finishMode);
-                } else {
-                    // 선택지가 하나뿐이면 바로 이동
-                    BoardNode dest = cans.get(0);
-                    controller.isFinished(selected, dest, path, steps);
-                    handleMoveSuccess(chosenResult);
-                }
+                // 항상 노드 하이라이팅을 통해 선택 (선택지가 1개여도)
+                highlightDestinations(cans, chosenResult, selected, finishMode);
             }
 
         } catch (Exception e) {
