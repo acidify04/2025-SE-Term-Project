@@ -547,7 +547,7 @@ public class GameBoardView {
 
         try {
             if (steps < 0) {
-                // 빽도 처리
+                // 빽도 처리 - Swing과 동일한 로직
                 List<BoardNode> prevs = controller.getBoard().getPossiblePreviousNodes(curr);
                 System.out.println(">>> 빽도 이동 - 가능한 이전 노드: " + prevs.size() + "개");
 
@@ -567,11 +567,16 @@ public class GameBoardView {
                     return;
                 }
 
-                // 항상 노드 하이라이팅을 통해 선택
-                highlightDestinations(prevs, chosenResult, selected, false);
+                if (prevs.size() == 1) {
+                    // 선택지가 1개면 해당 노드만 하이라이팅 (Swing에서는 자동 이동)
+                    highlightSingleDestination(prevs.get(0), chosenResult, selected, false);
+                } else {
+                    // 선택지가 여러개면 모두 하이라이팅
+                    highlightDestinations(prevs, chosenResult, selected, false);
+                }
 
             } else {
-                // 정방향 이동 처리
+                // 정방향 이동 처리 - Swing과 동일한 로직
                 List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
                 System.out.println(">>> 정방향 이동 - 가능한 다음 노드: " + cans.size() + "개");
 
@@ -597,8 +602,15 @@ public class GameBoardView {
                 int canFinishIndex = controller.checkCanFinishIndex(paths, path);
                 boolean finishMode = canFinishIndex >= 0;
 
-                // 항상 노드 하이라이팅을 통해 선택 (선택지가 1개여도)
-                highlightDestinations(cans, chosenResult, selected, finishMode);
+                // Swing과 동일한 조건: 갈림길이면서 선택지가 2개 이상일 때만 선택
+                if (controller.isCrossroad(curr) && cans.size() > 1) {
+                    // 실제 선택이 필요한 경우 - 모든 노드 하이라이팅
+                    highlightDestinations(cans, chosenResult, selected, finishMode);
+                } else {
+                    // 선택지가 없거나 1개뿐인 경우 - 해당 노드만 하이라이팅
+                    BoardNode dest = cans.get(0);
+                    highlightSingleDestination(dest, chosenResult, selected, finishMode);
+                }
             }
 
         } catch (Exception e) {
@@ -610,6 +622,54 @@ public class GameBoardView {
             alert.setHeaderText(null);
             alert.setContentText("말 이동 중 오류가 발생했습니다: " + e.getMessage());
             alert.showAndWait();
+        }
+    }
+
+    /**
+     * 단일 목적지 노드를 하이라이팅 (Swing에서 자동 이동하는 경우)
+     */
+    private void highlightSingleDestination(BoardNode destination, YutThrowResult chosenResult,
+                                            Piece selectedPiece, boolean finishMode) {
+        System.out.println(">>> 단일 목적지 하이라이팅: " + destination.getId());
+
+        if (boardPane != null) {
+            boardPane.clearAllHighlights();
+
+            // 단일 노드만 하이라이팅
+            List<BoardNode> singleList = List.of(destination);
+            boardPane.highlightNodes(singleList, clickedNode -> {
+                System.out.println(">>> 단일 목적지 노드 클릭됨: " + clickedNode.getId());
+
+                // 하이라이트 해제
+                boardPane.unhighlightNodes(singleList);
+
+                try {
+                    // 컨트롤러를 통해 이동 처리
+                    int steps = controller.getSteps(chosenResult);
+
+                    if (steps < 0) {
+                        // 빽도 이동
+                        controller.movePiece(selectedPiece, clickedNode, controller.getContainsStartNode());
+                    } else {
+                        // 정방향 이동 (완주 처리 포함)
+                        List<BoardNode> path = controller.getBoard().getPaths();
+                        controller.isFinished(selectedPiece, clickedNode, path, steps);
+                    }
+
+                    handleMoveSuccess(chosenResult);
+
+                } catch (Exception e) {
+                    System.err.println(">>> 단일 노드 클릭 후 이동 실패: " + e.getMessage());
+                    e.printStackTrace();
+
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("이동 실패");
+                    alert.setHeaderText(null);
+                    alert.setContentText("말 이동에 실패했습니다!");
+                    alert.showAndWait();
+                }
+
+            }, finishMode);
         }
     }
 
