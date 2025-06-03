@@ -20,6 +20,8 @@ public class BoardPanel extends JPanel {
     private static final int NODE_SIZE = 40;
     private static final int PIECE_SIZE = 30;
 
+    private int yOffset = 50;
+
     private final Image pieceIconP1;
     private final Image pieceIconP2;
     private final Image pieceIconP3;
@@ -62,10 +64,10 @@ public class BoardPanel extends JPanel {
         g.setColor(Color.GRAY);
         for (BoardNode node : controller.getBoard().getNodes()) {
             int x1 = node.getX() + NODE_SIZE/2;
-            int y1 = node.getY() + NODE_SIZE/2;
+            int y1 = node.getY() + NODE_SIZE/2  + yOffset;
             for (BoardNode nxt : node.getNextNodes()) {
                 int x2 = nxt.getX() + NODE_SIZE/2;
-                int y2 = nxt.getY() + NODE_SIZE/2;
+                int y2 = nxt.getY() + NODE_SIZE/2  + yOffset;
                 g.drawLine(x1, y1, x2, y2);
             }
         }
@@ -92,13 +94,13 @@ public class BoardPanel extends JPanel {
     private void drawNode(Graphics g, BoardNode node) {
         int x = node.getX(), y = node.getY();
         g.setColor(Color.LIGHT_GRAY);
-        g.fillOval(x, y, NODE_SIZE, NODE_SIZE);
+        g.fillOval(x, y + yOffset, NODE_SIZE, NODE_SIZE);
 
         g.setColor(Color.BLACK);
-        g.drawOval(x, y, NODE_SIZE, NODE_SIZE);
+        g.drawOval(x, y + yOffset, NODE_SIZE, NODE_SIZE);
 
         // 노드 ID 표시
-        g.drawString(node.getId(), x, y - 5);
+        g.drawString(node.getId(), x, y - 5 + yOffset);
     }
 
     private void drawPieces(Graphics g, BoardNode node) {
