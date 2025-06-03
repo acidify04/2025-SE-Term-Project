@@ -19,11 +19,10 @@ public class Main {
         // controller.initializeGame();
 
         // swing 호출 시 주석 제거
-        /*
+
         SwingUtilities.invokeLater(() -> {
             controller.initializeGame();   // 내부에서 Swing View 호출
         });
-         */
 
     }
 }

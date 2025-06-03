@@ -24,11 +24,11 @@ public class YutGameController {
     public YutGameController() {
         this.game = new YutGame();
         // SwingView 선택 시
-        // this.view = new SwingYutGameView();
-        // view.setController(this);
+        this.view = new SwingYutGameView();
+        view.setController(this);
 
         // javaFX 선택 시
-        launch();
+        //launch();
     }
 
     public void launch() {
