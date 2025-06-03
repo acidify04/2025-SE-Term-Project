@@ -576,42 +576,54 @@ public class GameBoardView {
                 }
 
             } else {
-                // 정방향 이동 처리 - Swing과 동일한 로직
-                List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
-                System.out.println(">>> 정방향 이동 - 가능한 다음 노드: " + cans.size() + "개");
+                // 정방향 이동 처리
 
-                if (cans.isEmpty()) {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("이동 불가");
-                    alert.setHeaderText(null);
-                    alert.setContentText("이동할 수 있는 곳이 없습니다!");
-                    alert.showAndWait();
+                // ★ 먼저 완주 가능 여부 확인
+                boolean finishMode = canActuallyFinish(selected, steps);
+                System.out.println(">>> 완주 모드: " + finishMode);
 
-                    currentResults.remove(chosenResult);
-                    clearSelectedYutResult();
-                    repaint(1);
-                    if (currentResults.isEmpty()) {
-                        endTurn();
-                    }
-                    return;
-                }
+                if (finishMode) {
+                    // ★ 완주 모드: START_NODE만 하이라이팅 (다른 노드들 완전 무시)
+                    System.out.println(">>> 완주 모드 - START_NODE만 특별 효과로 하이라이팅");
+                    System.out.println(">>> getPossibleNextNodes 호출하지 않음 (완주 처리)");
 
-                // 완주 가능 여부 확인
-                List<BoardNode> path = controller.getBoard().getPaths();
-                List<List<BoardNode>> paths = controller.splitPath(path, steps);
-                int canFinishIndex = controller.checkCanFinishIndex(paths, path);
-                boolean finishMode = canFinishIndex >= 0;
+                    // START_NODE만 하이라이팅
+                    highlightSingleDestination(controller.getBoard().getStartNode(), chosenResult, selected, true);
+                    return; // ★ 여기서 완전히 종료, 다른 로직 실행 안 함
 
-                // Swing과 동일한 조건: 갈림길이면서 선택지가 2개 이상일 때만 선택
-                if (controller.isCrossroad(curr) && cans.size() > 1) {
-                    // 실제 선택이 필요한 경우 - 모든 노드 하이라이팅
-                    highlightDestinations(cans, chosenResult, selected, finishMode);
                 } else {
-                    // 선택지가 없거나 1개뿐인 경우 - 해당 노드만 하이라이팅
-                    BoardNode dest = cans.get(0);
-                    highlightSingleDestination(dest, chosenResult, selected, finishMode);
+                    // ★ 일반 모드: 기존 로직
+                    System.out.println(">>> 일반 모드 - getPossibleNextNodes 호출");
+                    List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
+                    System.out.println(">>> 정방향 이동 - 가능한 다음 노드: " + cans.size() + "개");
+
+                    if (cans.isEmpty()) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("이동 불가");
+                        alert.setHeaderText(null);
+                        alert.setContentText("이동할 수 있는 곳이 없습니다!");
+                        alert.showAndWait();
+
+                        currentResults.remove(chosenResult);
+                        clearSelectedYutResult();
+                        repaint(1);
+                        if (currentResults.isEmpty()) {
+                            endTurn();
+                        }
+                        return;
+                    }
+
+                    // Swing과 동일한 조건: 갈림길이면서 선택지가 2개 이상일 때만 선택
+                    if (controller.isCrossroad(curr) && cans.size() > 1) {
+                        // 실제 선택이 필요한 경우 - 모든 노드 하이라이팅
+                        highlightDestinations(cans, chosenResult, selected, false);
+                    } else {
+                        // 선택지가 없거나 1개뿐인 경우 - 해당 노드만 하이라이팅
+                        BoardNode dest = cans.get(0);
+                        highlightSingleDestination(dest, chosenResult, selected, false);
+                    }
                 }
-            }
+        }
 
         } catch (Exception e) {
             System.err.println(">>> moveNode 실행 중 오류: " + e.getMessage());
@@ -630,7 +642,7 @@ public class GameBoardView {
      */
     private void highlightSingleDestination(BoardNode destination, YutThrowResult chosenResult,
                                             Piece selectedPiece, boolean finishMode) {
-        System.out.println(">>> 단일 목적지 하이라이팅: " + destination.getId());
+        System.out.println(">>> 단일 목적지 하이라이팅: " + destination.getId() + " (완주모드: " + finishMode + ")");
 
         if (boardPane != null) {
             boardPane.clearAllHighlights();
@@ -644,7 +656,6 @@ public class GameBoardView {
                 boardPane.unhighlightNodes(singleList);
 
                 try {
-                    // 컨트롤러를 통해 이동 처리
                     int steps = controller.getSteps(chosenResult);
 
                     if (steps < 0) {
@@ -653,6 +664,12 @@ public class GameBoardView {
                     } else {
                         // 정방향 이동 (완주 처리 포함)
                         List<BoardNode> path = controller.getBoard().getPaths();
+
+                        // ★ 완주 모드이고 START_NODE 클릭 시 특별 처리
+                        if (finishMode && clickedNode.getId().equals("START_NODE")) {
+                            System.out.println(">>> 🎉 완주 처리! START_NODE 클릭됨 🎉");
+                        }
+
                         controller.isFinished(selectedPiece, clickedNode, path, steps);
                     }
 
@@ -690,7 +707,22 @@ public class GameBoardView {
                 boardPane.unhighlightNodes(new ArrayList<>(destinations));
 
                 try {
-                    // 컨트롤러를 통해 이동 처리
+                    // ★ 수정: 완주 모드일 때 컨트롤러를 통한 완주 처리
+                    if (finishMode && clickedNode.getId().equals("START_NODE")) {
+                        System.out.println(">>> 완주 처리 - START_NODE 클릭됨");
+
+                        // ★ 컨트롤러의 완주 처리 메서드 사용
+                        int steps = controller.getSteps(chosenResult);
+                        List<BoardNode> path = controller.getBoard().getPaths();
+
+                        // 완주 처리: 컨트롤러가 알아서 말을 완주시킴
+                        controller.isFinished(selectedPiece, clickedNode, path, steps);
+
+                        handleMoveSuccess(chosenResult);
+                        return;
+                    }
+
+                    // 일반 이동 처리
                     int steps = controller.getSteps(chosenResult);
 
                     if (steps < 0) {
@@ -1165,5 +1197,64 @@ public class GameBoardView {
      */
     public boolean isHighlightActive() {
         return boardPane != null && boardPane.hasHighlightedNodes();
+    }
+
+    /**
+     * 실제로 완주 가능한지 판단 (말이 이미 한바퀴를 돌았는지 체크)
+     */
+    private boolean canActuallyFinish(Piece piece, int steps) {
+        System.out.println("=== 완주 가능 여부 판단 ===");
+        System.out.println("- 말: " + piece);
+        System.out.println("- 이동 칸 수: " + steps);
+
+        // 1) 새 말은 완주 불가능
+        if (piece.getCurrentNode() == null) {
+            System.out.println(">>> 새 말 - 완주 불가능");
+            return false;
+        }
+
+        try {
+            // ★ 핵심: 컨트롤러의 기존 메서드들을 활용
+
+            // 현재 말의 이동 가능한 목적지들 가져오기
+            List<BoardNode> possibleDestinations = controller.getBoard().getPossibleNextNodes(piece.getCurrentNode(), steps);
+
+            if (possibleDestinations.isEmpty()) {
+                System.out.println(">>> 이동 가능한 목적지 없음 - 완주 불가능");
+                return false;
+            }
+
+            // ★ 게임 모델의 완주 체크 메서드 활용
+            List<BoardNode> path = controller.getBoard().getPaths();
+
+            // checkCanFinishIndex를 사용해서 완주 가능한지 체크
+            // 이 메서드가 -1이 아닌 값을 반환하면 완주 가능한 것 같음
+            List<List<BoardNode>> pathChunks = controller.splitPath(path, steps);
+            int finishIndex = controller.checkCanFinishIndex(pathChunks, path);
+
+            if (finishIndex >= 0) {
+                System.out.println(">>> ✅ 완주 가능! (finishIndex: " + finishIndex + ")");
+                return true;
+            }
+
+            // ★ 또는 ContainStartNode 체크 (한바퀴 돌았는지)
+            boolean containsStartNode = controller.getContainsStartNode();
+
+            // START_NODE를 지날 수 있고, 이미 한바퀴를 돌았다면 완주 가능
+            boolean canReachStartNode = possibleDestinations.stream()
+                    .anyMatch(node -> node.getId().equals("START_NODE"));
+
+            if (canReachStartNode && containsStartNode) {
+                System.out.println(">>> ✅ 완주 가능! (START_NODE 도달 + 한바퀴 완주)");
+                return true;
+            }
+
+        } catch (Exception e) {
+            System.err.println(">>> 완주 가능 여부 체크 실패: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        System.out.println(">>> 완주 불가능");
+        return false;
     }
 }

@@ -336,12 +336,13 @@ public class BoardPane extends Pane {
     public void highlightNodes(List<BoardNode> nodes, Consumer<BoardNode> callback, boolean finishMode) {
         System.out.println("=== highlightNodes 진입 ===");
         System.out.println("- 노드 개수: " + nodes.size());
+        System.out.println("- 완주 모드: " + finishMode);
 
-        // ★ 수정: 기존 클릭 영역과 하이라이트 완전 정리
+        // ★ 기존 클릭 영역과 하이라이트 완전 정리
         clearAllClickAreas();
         clearAllHighlights();
 
-        // ★ 수정: 말 클릭을 완전히 차단하고 노드 클릭을 우선
+        // ★ 말 클릭을 완전히 차단하고 노드 클릭을 우선
         pieceLayer.setMouseTransparent(true);
         System.out.println("- pieceLayer mouseTransparent 설정됨");
 
@@ -359,13 +360,14 @@ public class BoardPane extends Pane {
                 continue;
             }
 
-            // ★ 수정: 부드러운 하이라이트 효과
             circle.setVisible(true);
             circle.setDisable(false);
             circle.setMouseTransparent(false);
-// ★ 핵심: 완주 가능한 START_NODE에 특별한 효과
+
+            // ★ 핵심: 완주 모드일 때 START_NODE에 특별한 효과
             if (finishMode && node.getId().equals("START_NODE")) {
-                System.out.println("!!! 완주 모드 - START_NODE에 특별한 효과 적용 !!!");
+                System.out.println("!!! 완주 모드 - START_NODE에 특별한 완주 효과 적용 !!!");
+                System.out.println("!!! 이 노드를 클릭하면 완주됩니다! (한바퀴 초과) !!!");
 
                 // 골든 색상으로 특별하게
                 circle.setFill(Color.GOLD.deriveColor(0, 1, 1, 0.8));
@@ -420,11 +422,14 @@ public class BoardPane extends Pane {
                 finishFade.setAutoReverse(true);
                 finishFade.play();
 
-                // ★ 애니메이션들을 activeTransitions에 저장 (나중에 정리용)
                 activeTransitions.put(node, finishFade);
 
             } else {
-                // 일반 노드는 기존 효과
+                // ★ 일반 노드들은 기존 파란색 효과
+                if (finishMode && !node.getId().equals("START_NODE")) {
+                    System.out.println(">>> 완주 모드 - 일반 노드 (START_NODE 아님): " + node.getId());
+                }
+
                 circle.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.6));
                 circle.setStroke(Color.DODGERBLUE);
                 circle.setStrokeWidth(4.0);
@@ -453,24 +458,23 @@ public class BoardPane extends Pane {
 
             circle.toFront();
 
-            // 클릭 영역 생성 (기존과 동일)
+            // 클릭 영역 생성
             Circle clickArea = new Circle(circle.getCenterX(), circle.getCenterY(), 30);
             clickArea.setFill(Color.TRANSPARENT);
             clickArea.setStroke(Color.TRANSPARENT);
             clickArea.setMouseTransparent(false);
             clickArea.setId("clickArea_" + node.getId());
 
-            // 클릭 이벤트 (기존과 동일)
+            // 클릭 이벤트
             clickArea.setOnMouseClicked(e -> {
                 System.out.println("!!! 클릭 영역 이벤트 발생 !!! 노드: " + node.getId());
                 if (finishMode && node.getId().equals("START_NODE")) {
-                    System.out.println("!!! 🎉 완주 클릭 감지! 🎉 !!!");
+                    System.out.println("!!! 🎉 완주 START_NODE 클릭 감지! (한바퀴 초과 완주) 🎉 !!!");
                 }
 
                 if (nodeClickCallback != null) {
                     Platform.runLater(() -> {
                         try {
-                            // 모든 애니메이션 중지
                             FadeTransition transition = activeTransitions.get(node);
                             if (transition != null) {
                                 transition.stop();
@@ -485,17 +489,18 @@ public class BoardPane extends Pane {
                 e.consume();
             });
 
-            // ★ 특별한 호버 효과 (완주 모드)
+            // ★ 호버 효과
             if (finishMode && node.getId().equals("START_NODE")) {
+                // 완주 가능한 START_NODE에 특별한 호버 효과
                 clickArea.setOnMouseEntered(e -> {
-                    System.out.println("🌟 완주 노드 호버 진입!");
+                    System.out.println("🌟 완주 START_NODE 호버 진입! (한바퀴 초과)");
                     circle.setFill(Color.LIME.deriveColor(0, 1, 1, 0.9));
                     circle.setStrokeWidth(8.0);
                     clickArea.setCursor(Cursor.HAND);
                 });
 
                 clickArea.setOnMouseExited(e -> {
-                    System.out.println("🌟 완주 노드 호버 종료!");
+                    System.out.println("🌟 완주 START_NODE 호버 종료!");
                     // 무지개 효과 유지
                     clickArea.setCursor(Cursor.HAND);
                 });
