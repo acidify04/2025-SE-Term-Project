@@ -513,255 +513,195 @@ public class GameBoardView {
         System.out.println("- selectedPiece: " + selectedPiece);
         System.out.println("- currentPlayer: " + currentPlayer.getName());
 
-        final int steps = controller.getSteps(chosenResult);
+        // 1. 말 선택 (selectedPiece가 null이면 selectPiece 호출)
+        Piece selected = selectedPiece;
+        if (selected == null) {
+            // New Piece 버튼으로 들어온 경우 - 컨트롤러를 통해 말 선택
+            var pieceDecisions = controller.getPieceDecisions(currentPlayer, chosenResult);
+            if (!pieceDecisions.choices().isEmpty()) {
+                selected = pieceDecisions.choices().get(0); // 첫 번째는 새 말
+            }
+        }
+
+        if (selected == null) {
+            System.out.println(">>> 선택된 말이 없음");
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("말 선택 없음");
+            alert.setHeaderText(null);
+            alert.setContentText("이동할 말이 없습니다!");
+            alert.showAndWait();
+            return;
+        }
+
+        // 2. 이동 칸 수 계산
+        int steps = controller.getSteps(chosenResult);
         System.out.println("- steps: " + steps);
 
-        // ★ 완전히 새로운 접근: 새 말 처리를 위한 특별 로직
-        var pieceDecisions = controller.getPieceDecisions(currentPlayer, chosenResult);
+        // 3. 현재 노드 확인
+        BoardNode curr = selected.getCurrentNode();
+        if (curr == null) {
+            curr = controller.getBoard().getStartNode();
+            System.out.println(">>> 새 말 - START_NODE로 설정");
+        }
+        System.out.println("- 현재 노드: " + curr.getId());
 
         try {
-            var choicesField = pieceDecisions.getClass().getDeclaredField("choices");
-            choicesField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            List<Piece> choices = (List<Piece>) choicesField.get(pieceDecisions);
+            if (steps < 0) {
+                // 빽도 처리
+                List<BoardNode> prevs = controller.getBoard().getPossiblePreviousNodes(curr);
+                System.out.println(">>> 빽도 이동 - 가능한 이전 노드: " + prevs.size() + "개");
 
-            System.out.println(">>> Controller에서 제공하는 선택지:");
-            for (int i = 0; i < choices.size(); i++) {
-                Piece piece = choices.get(i);
-                System.out.println("  [" + i + "] " + piece + " (currentNode: " + piece.getCurrentNode() + ")");
-            }
+                if (prevs.isEmpty()) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("이동 불가");
+                    alert.setHeaderText(null);
+                    alert.setContentText("뒤로 이동할 수 있는 곳이 없습니다!");
+                    alert.showAndWait();
 
-            // 타겟 말 결정
-            Piece targetPiece;
-            boolean isNewPiece = false;
-
-            if (selectedPiece == null) {
-                // New Piece 버튼으로 들어온 경우
-                targetPiece = choices.get(0); // 첫 번째는 항상 "새로운 말"
-                isNewPiece = true;
-                System.out.println(">>> New Piece 버튼으로 진입 - 새 말 사용: " + targetPiece);
-            } else {
-                // 기존 말 클릭으로 들어온 경우
-                targetPiece = selectedPiece;
-                isNewPiece = (targetPiece.getCurrentNode() == null);
-                System.out.println(">>> 기존 말 클릭으로 진입 - " + (isNewPiece ? "새 말" : "기존 말") + ": " + targetPiece);
-            }
-
-            // 목적지 계산
-            // 기존 코드에서 possibleDestinations 계산 부분을 수정
-            List<BoardNode> possibleDestinations;
-            if (isNewPiece) {
-                BoardNode startNode = controller.getBoard().getStartNode();
-                List<BoardNode> allDestinations = controller.getBoard().getPossibleNextNodes(startNode, steps);
-                // ★ 뷰에서 지름길 규칙 적용
-                possibleDestinations = applyShortcutRulesInView(startNode, allDestinations, steps);
-                System.out.println(">>> 새 말: START_NODE에서 " + steps + "칸 이동 (뷰 레벨 지름길 규칙 적용)");
-            } else {
-                BoardNode curr = targetPiece.getCurrentNode();
-                List<BoardNode> allDestinations = (steps < 0)
-                        ? controller.getBoard().getPossiblePreviousNodes(curr)
-                        : controller.getBoard().getPossibleNextNodes(curr, steps);
-
-                // ★ 핵심: 뷰에서 지름길 규칙 적용
-                possibleDestinations = applyShortcutRulesInView(curr, allDestinations, steps);
-                System.out.println(">>> 기존 말: " + curr.getId() + "에서 " + steps + "칸 이동 (뷰 레벨 지름길 규칙 적용)");
-            }
-
-            System.out.println("- 가능한 목적지 개수: " + possibleDestinations.size());
-            for (BoardNode dest : possibleDestinations) {
-                System.out.println("  -> " + dest.getId());
-            }
-
-            if (possibleDestinations.isEmpty()) {
-                System.out.println(">>> 이동할 노드가 없음");
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("이동 불가");
-                alert.setHeaderText(null);
-                alert.setContentText("이동할 수 있는 곳이 없습니다!");
-                alert.showAndWait();
-
-                currentResults.remove(chosenResult);
-                clearSelectedYutResult();
-                repaint(1);
-                if (currentResults.isEmpty()) {
-                    endTurn();
-                }
-                return;
-            }
-
-            final boolean finishMode = possibleDestinations.contains(controller.getBoard().getStartNode());
-            final Piece finalTargetPiece = targetPiece;
-            final boolean finalIsNewPiece = isNewPiece;
-
-            System.out.println(">>> highlightNodes 호출 시작");
-            if (boardPane != null) {
-                boardPane.clearAllHighlights();
-            }
-
-            // moveNode 메소드의 노드 클릭 콜백 부분 수정
-            // moveNode 메소드의 노드 클릭 콜백 부분을 다음과 같이 수정
-            boardPane.highlightNodes(possibleDestinations, clickedNode -> {
-                System.out.println("=== 노드 클릭 콜백 실행 ===");
-                System.out.println("- 클릭된 노드: " + clickedNode.getId());
-
-                // ★ 추가: 말 잡기 디버깅
-                System.out.println("=== 말 잡기 디버깅 ===");
-                System.out.println("- 목적지 노드: " + clickedNode.getId());
-                System.out.println("- 목적지 노드의 말들:");
-
-                for (Piece occupant : clickedNode.getOccupantPieces()) {
-                    System.out.println("  -> " + occupant + " (소유자: " + occupant.getOwner().getName() + ")");
-                }
-
-                System.out.println("- 현재 플레이어: " + currentPlayer.getName());
-                System.out.println("- 이동하는 말: " + finalTargetPiece + " (소유자: " + finalTargetPiece.getOwner().getName() + ")");
-
-                // 말 잡기 상황인지 확인
-                boolean canCatch = false;
-                for (Piece occupant : clickedNode.getOccupantPieces()) {
-                    if (!occupant.getOwner().equals(finalTargetPiece.getOwner())) {
-                        canCatch = true;
-                        System.out.println("*** 말 잡기 상황 감지! 잡힐 말: " + occupant);
-                    }
-                }
-
-                if (!canCatch && !clickedNode.getOccupantPieces().isEmpty()) {
-                    System.out.println("*** 말 업기 상황 감지!");
-                }
-
-                if (clickedNode.getOccupantPieces().isEmpty()) {
-                    System.out.println("*** 빈 노드로 이동");
-                }
-
-                boardPane.unhighlightNodes(new ArrayList<>(possibleDestinations));
-
-                try {
-                    boolean moveSuccess;
-
-                    // ★ 추가: Controller 호출 전후로 노드 상태 확인
-                    System.out.println("=== 이동 전 노드 상태 ===");
-                    System.out.println("목적지 노드 " + clickedNode.getId() + "의 말 개수: " + clickedNode.getOccupantPieces().size());
-                    for (Piece piece : clickedNode.getOccupantPieces()) {
-                        System.out.println("  -> " + piece + " (소유자: " + piece.getOwner().getName() + ")");
-                    }
-
-                    if (finalIsNewPiece) {
-                        // ★ 수정: 새 말도 기존 메소드 사용 (빽도 버그 우회)
-                        System.out.println(">>> 새 말 - 기존 메소드 사용 (빽도 버그 우회)");
-
-                        try {
-                            // 1단계: 새 말을 임시로 START_NODE에 배치 (Controller가 인식할 수 있도록)
-                            BoardNode startNode = controller.getBoard().getStartNode();
-
-                            // 리플렉션으로 currentNode 설정
-                            var currentNodeField = finalTargetPiece.getClass().getDeclaredField("currentNode");
-                            currentNodeField.setAccessible(true);
-                            currentNodeField.set(finalTargetPiece, startNode);
-
-                            // pathHistory도 설정
-                            var pathHistoryField = finalTargetPiece.getClass().getDeclaredField("pathHistory");
-                            pathHistoryField.setAccessible(true);
-                            List<BoardNode> tempHistory = new ArrayList<>();
-                            tempHistory.add(startNode);
-                            pathHistoryField.set(finalTargetPiece, tempHistory);
-
-                            System.out.println(">>> 새 말을 임시로 START_NODE에 배치 완료");
-
-                            // 2단계: 이제 기존 메소드 사용 (Controller가 정상 인식할 것임)
-                            if (finishMode && clickedNode.getId().equals("START_NODE")) {
-                                controller.isFinished(finalTargetPiece, clickedNode,
-                                        controller.getBoard().getPaths(), steps);
-                            } else {
-                                if (steps < 0) {
-                                    controller.movePiece(finalTargetPiece, clickedNode, controller.getContainsStartNode());
-                                } else {
-                                    controller.isFinished(finalTargetPiece, clickedNode,
-                                            controller.getBoard().getPaths(), steps);
-                                }
-                            }
-
-                            moveSuccess = true;
-
-                        } catch (Exception e) {
-                            System.err.println(">>> 새 말 기존 메소드 사용 실패: " + e.getMessage());
-                            e.printStackTrace();
-
-                            // 실패 시 새 컨트롤러 메소드로 폴백
-                            System.out.println(">>> 폴백: 새 컨트롤러 메소드 사용");
-                            moveSuccess = controller.moveNewPieceToNode(finalTargetPiece, clickedNode, steps);
-                        }
-
-                    } else {
-                        // ★ 기존 말은 기존 Controller 메소드 사용
-                        try {
-                            if (finishMode && clickedNode.getId().equals("START_NODE")) {
-                                controller.isFinished(finalTargetPiece, clickedNode,
-                                        controller.getBoard().getPaths(), steps);
-                            } else {
-                                if (steps < 0) {
-                                    controller.movePiece(finalTargetPiece, clickedNode, controller.getContainsStartNode());
-                                } else {
-                                    controller.isFinished(finalTargetPiece, clickedNode,
-                                            controller.getBoard().getPaths(), steps);
-                                }
-                            }
-                            moveSuccess = true;
-                        } catch (Exception e) {
-                            System.err.println("기존 말 이동 실패: " + e.getMessage());
-                            moveSuccess = false;
-                        }
-                    }
-
-                    // ★ 추가: Controller 호출 후 노드 상태 확인
-                    System.out.println("=== 이동 후 노드 상태 ===");
-                    System.out.println("목적지 노드 " + clickedNode.getId() + "의 말 개수: " + clickedNode.getOccupantPieces().size());
-                    for (Piece piece : clickedNode.getOccupantPieces()) {
-                        System.out.println("  -> " + piece + " (소유자: " + piece.getOwner().getName() + ")");
-                    }
-
-                    if (!moveSuccess) {
-                        Alert alert = new Alert(Alert.AlertType.ERROR);
-                        alert.setTitle("이동 실패");
-                        alert.setHeaderText(null);
-                        alert.setContentText("말 이동에 실패했습니다!");
-                        alert.showAndWait();
-                        return;
-                    }
-
-                    // ★ 추가: 이동 성공 후 즉시 승리 검사
-                    System.out.println(">>> 말 이동 완료 - 승리 검사 시작");
-                    checkGameEndCondition();
-
-                    // 이동 성공 후 처리
-                    System.out.println(">>> 이동 후 정리 작업");
                     currentResults.remove(chosenResult);
                     clearSelectedYutResult();
-                    clearPieceSelectionState();
-
                     repaint(1);
-                    repaint(2);
-                    boardPane.drawBoard();
-
                     if (currentResults.isEmpty()) {
                         endTurn();
+                    }
+                    return;
+                }
+
+                if (prevs.size() == 1) {
+                    // 선택지가 하나뿐이면 바로 이동
+                    BoardNode dest = prevs.get(0);
+                    controller.movePiece(selected, dest, controller.getContainsStartNode());
+                    handleMoveSuccess(chosenResult);
+                } else {
+                    // 여러 선택지가 있으면 노드 하이라이팅
+                    highlightDestinations(prevs, chosenResult, selected, false);
+                }
+
+            } else {
+                // 정방향 이동 처리
+                List<BoardNode> cans = controller.getBoard().getPossibleNextNodes(curr, steps);
+                System.out.println(">>> 정방향 이동 - 가능한 다음 노드: " + cans.size() + "개");
+
+                if (cans.isEmpty()) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("이동 불가");
+                    alert.setHeaderText(null);
+                    alert.setContentText("이동할 수 있는 곳이 없습니다!");
+                    alert.showAndWait();
+
+                    currentResults.remove(chosenResult);
+                    clearSelectedYutResult();
+                    repaint(1);
+                    if (currentResults.isEmpty()) {
+                        endTurn();
+                    }
+                    return;
+                }
+
+                // 완주 가능 여부 확인
+                List<BoardNode> path = controller.getBoard().getPaths();
+                List<List<BoardNode>> paths = controller.splitPath(path, steps);
+                int canFinishIndex = controller.checkCanFinishIndex(paths, path);
+                boolean finishMode = canFinishIndex >= 0;
+
+                if (controller.isCrossroad(curr) && cans.size() > 1) {
+                    // 갈림길인 경우 노드 하이라이팅
+                    highlightDestinations(cans, chosenResult, selected, finishMode);
+                } else {
+                    // 선택지가 하나뿐이면 바로 이동
+                    BoardNode dest = cans.get(0);
+                    controller.isFinished(selected, dest, path, steps);
+                    handleMoveSuccess(chosenResult);
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println(">>> moveNode 실행 중 오류: " + e.getMessage());
+            e.printStackTrace();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("이동 실패");
+            alert.setHeaderText(null);
+            alert.setContentText("말 이동 중 오류가 발생했습니다: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    /**
+     * 목적지 노드들을 하이라이팅하고 사용자 선택을 기다립니다
+     */
+    private void highlightDestinations(List<BoardNode> destinations, YutThrowResult chosenResult,
+                                       Piece selectedPiece, boolean finishMode) {
+        System.out.println(">>> 목적지 하이라이팅 시작: " + destinations.size() + "개");
+
+        if (boardPane != null) {
+            boardPane.clearAllHighlights();
+
+            boardPane.highlightNodes(destinations, clickedNode -> {
+                System.out.println(">>> 목적지 노드 선택됨: " + clickedNode.getId());
+
+                // 하이라이트 해제
+                boardPane.unhighlightNodes(new ArrayList<>(destinations));
+
+                try {
+                    // 컨트롤러를 통해 이동 처리
+                    int steps = controller.getSteps(chosenResult);
+
+                    if (steps < 0) {
+                        // 빽도 이동
+                        controller.movePiece(selectedPiece, clickedNode, controller.getContainsStartNode());
                     } else {
-                        updateAllPlayerButtonStates();
+                        // 정방향 이동 (완주 처리 포함)
+                        List<BoardNode> path = controller.getBoard().getPaths();
+                        controller.isFinished(selectedPiece, clickedNode, path, steps);
                     }
 
+                    handleMoveSuccess(chosenResult);
+
                 } catch (Exception e) {
-                    System.err.println(">>> 말 이동 실패: " + e.getMessage());
+                    System.err.println(">>> 노드 선택 후 이동 실패: " + e.getMessage());
                     e.printStackTrace();
+
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("이동 실패");
+                    alert.setHeaderText(null);
+                    alert.setContentText("말 이동에 실패했습니다!");
+                    alert.showAndWait();
                 }
 
             }, finishMode);
-
-
-            System.out.println(">>> highlightNodes 호출 완료");
-
-        } catch (Exception e) {
-            System.err.println(">>> getPieceDecisions 처리 실패: " + e.getMessage());
-            e.printStackTrace();
         }
+    }
+
+    /**
+     * 이동 성공 후 공통 처리
+     */
+    private void handleMoveSuccess(YutThrowResult chosenResult) {
+        System.out.println(">>> 이동 성공 - 후처리 시작");
+
+        // 승리 조건 확인
+        checkGameEndCondition();
+
+        // 사용된 윷 결과 제거
+        currentResults.remove(chosenResult);
+        clearSelectedYutResult();
+        clearPieceSelectionState();
+
+        // UI 업데이트
+        repaint(1);
+        repaint(2);
+        if (boardPane != null) {
+            boardPane.drawBoard();
+        }
+
+        // 다음 처리
+        if (currentResults.isEmpty()) {
+            endTurn();
+        } else {
+            updateAllPlayerButtonStates();
+        }
+
+        System.out.println(">>> 이동 후처리 완료");
     }
 
     /**
@@ -1179,115 +1119,5 @@ public class GameBoardView {
      */
     public boolean isHighlightActive() {
         return boardPane != null && boardPane.hasHighlightedNodes();
-    }
-
-    /**
-     * 뷰에서 지름길 규칙을 체크하여 목적지를 필터링
-     * @param currentNode 현재 노드
-     * @param allDestinations Controller에서 받은 모든 목적지
-     * @param steps 이동 칸 수
-     * @return 지름길 규칙이 적용된 목적지
-     */
-    /**
-     * 뷰에서 지름길 규칙을 체크하여 목적지를 필터링
-     */
-    private List<BoardNode> applyShortcutRulesInView(BoardNode currentNode, List<BoardNode> allDestinations, int steps) {
-        String currentNodeId = currentNode.getId();
-
-        System.out.println(">>> 뷰에서 지름길 규칙 적용: " + currentNodeId + " (보드타입: " + boardType + ")");
-        System.out.println(">>> 필터링 전 목적지: " + allDestinations.size() + "개");
-
-        // ★ 수정: 보드 타입별로 엄격한 꼭짓점 검사
-        if (!isCornerNodeInView(currentNodeId)) {
-            List<BoardNode> filteredDestinations = allDestinations.stream()
-                    .filter(dest -> !isShortcutNodeInView(dest.getId()))
-                    .collect(Collectors.toList());
-
-            System.out.println(">>> 꼭짓점이 아닌 위치(" + currentNodeId + ") - 지름길 제외됨: " + filteredDestinations.size() + "개");
-
-            // ★ 추가: 상세한 디버깅 로그
-            for (BoardNode dest : allDestinations) {
-                boolean isShortcut = isShortcutNodeInView(dest.getId());
-                boolean isFiltered = filteredDestinations.contains(dest);
-                System.out.println("  -> " + dest.getId() + " (" +
-                        (isShortcut ? "지름길" : "일반") + ", " +
-                        (isFiltered ? "허용" : "제외") + ")");
-            }
-
-            return filteredDestinations;
-        }
-
-        System.out.println(">>> 꼭짓점 위치(" + currentNodeId + ") - 모든 경로 허용 (지름길 포함)");
-        return allDestinations;
-    }
-
-    /**
-     * ★ 수정: 보드 타입별로 꼭짓점 정의를 엄격하게 분리
-     */
-    private boolean isCornerNodeInView(String nodeId) {
-        Set<String> cornerNodes = new HashSet<>();
-
-        switch (this.boardType) {
-            case 0: // 사각형 보드
-                cornerNodes.addAll(Set.of(
-                        "START_NODE", "EAST", "NORTH", "WEST", "SOUTH"
-                ));
-                break;
-
-            case 1: // 오각형 보드 - 정확한 꼭짓점만 정의
-                cornerNodes.addAll(Set.of(
-                        "START_NODE", "A", "B", "C", "D"
-                ));
-                break;
-
-            case 2: // 육각형 보드 - 정확한 꼭짓점만 정의
-                cornerNodes.addAll(Set.of(
-                        "START_NODE", "A", "B", "C", "D", "E", "F"
-                ));
-                break;
-
-            default:
-                System.err.println(">>> 알 수 없는 보드 타입: " + boardType);
-                break;
-        }
-
-        boolean isCorner = cornerNodes.contains(nodeId);
-        System.out.println(">>> [보드" + boardType + "] 노드 '" + nodeId + "'는 " +
-                (isCorner ? "꼭짓점" : "변의 중간점") + " (꼭짓점 목록: " + cornerNodes + ")");
-
-        return isCorner;
-    }
-
-    /**
-     * ★ 수정: 보드 타입별로 지름길 노드 정의도 분리
-     */
-    /**
-     * ★ 수정: 각 보드별 지름길을 명시적으로 정의
-     */
-    private boolean isShortcutNodeInView(String nodeId) {
-        switch (this.boardType) {
-            case 0: // 사각형 보드 지름길
-                Set<String> squareShortcuts = Set.of(
-                        "NE1", "NE2", "NE3", "NW1", "NW2", "NW3",
-                        "SE1", "SE2", "SE3", "SW1", "SW2", "SW3"
-                );
-                return squareShortcuts.contains(nodeId);
-
-            case 1: // 오각형 보드 지름길 - 모든 지름길 명시
-                Set<String> pentagonShortcuts = Set.of(
-                        "CENTER", "c1", "c2", "c3" // ★ CENTER 명시적 포함
-                );
-                return pentagonShortcuts.contains(nodeId);
-
-            case 2: // 육각형 보드 지름길
-                Set<String> hexShortcuts = Set.of(
-                        "a1", "a2", "b1", "b2", "c1", "c2",
-                        "d1", "d2", "e1", "e2", "f1", "f2"
-                );
-                return hexShortcuts.contains(nodeId);
-
-            default:
-                return false;
-        }
     }
 }

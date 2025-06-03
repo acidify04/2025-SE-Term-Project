@@ -33,6 +33,11 @@ import javafx.util.Duration;
 import javafx.application.Platform;
 import main.java.com.yutgame.model.YutThrowResult;
 
+import javafx.animation.RotateTransition;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+
 
 /**
  * 실제 윷놀이 판
@@ -358,93 +363,160 @@ public class BoardPane extends Pane {
             circle.setVisible(true);
             circle.setDisable(false);
             circle.setMouseTransparent(false);
+// ★ 핵심: 완주 가능한 START_NODE에 특별한 효과
+            if (finishMode && node.getId().equals("START_NODE")) {
+                System.out.println("!!! 완주 모드 - START_NODE에 특별한 효과 적용 !!!");
 
-            // ★ 수정: 부드러운 색상 (연한 파란색 배경 + 파란색 테두리)
-            circle.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.6));
-            circle.setStroke(Color.DODGERBLUE);
-            circle.setStrokeWidth(4.0);
-            circle.setRadius(20);
+                // 골든 색상으로 특별하게
+                circle.setFill(Color.GOLD.deriveColor(0, 1, 1, 0.8));
+                circle.setStroke(Color.ORANGE);
+                circle.setStrokeWidth(6.0);
+                circle.setRadius(25); // 더 크게
 
-            // ★ 수정: 부드러운 깜빡임 애니메이션
-            FadeTransition fadeTransition = new FadeTransition(Duration.millis(800), circle);
-            fadeTransition.setFromValue(1.0);
-            fadeTransition.setToValue(0.4);
-            fadeTransition.setCycleCount(Animation.INDEFINITE);
-            fadeTransition.setAutoReverse(true);
-            fadeTransition.play();
+                // ★ 특별한 무지개 펄스 효과
+                Timeline rainbowEffect = new Timeline();
+                rainbowEffect.setCycleCount(Animation.INDEFINITE);
 
-            // ★ 수정: 크기 변화 애니메이션
-            ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(800), circle);
-            scaleTransition.setFromX(1.0);
-            scaleTransition.setFromY(1.0);
-            scaleTransition.setToX(1.2);
-            scaleTransition.setToY(1.2);
-            scaleTransition.setCycleCount(Animation.INDEFINITE);
-            scaleTransition.setAutoReverse(true);
-            scaleTransition.play();
+                // 무지개 색상 변화
+                Color[] rainbowColors = {
+                        Color.RED, Color.ORANGE, Color.YELLOW,
+                        Color.GREEN, Color.BLUE, Color.PURPLE, Color.MAGENTA
+                };
 
-            // ★ 중요: Circle을 맨 앞으로 가져와서 말보다 위에 배치
+                for (int colorIndex = 0; colorIndex < rainbowColors.length; colorIndex++) {
+                    Color color = rainbowColors[colorIndex];
+                    double time = colorIndex * 0.3; // 각 색상당 0.3초
+
+                    KeyFrame frame = new KeyFrame(
+                            Duration.seconds(time),
+                            new KeyValue(circle.fillProperty(), color.deriveColor(0, 1, 1, 0.8)),
+                            new KeyValue(circle.strokeProperty(), color.darker())
+                    );
+                    rainbowEffect.getKeyFrames().add(frame);
+                }
+                rainbowEffect.play();
+
+                // ★ 특별한 크기 변화 (더 드라마틱하게)
+                ScaleTransition finishScale = new ScaleTransition(Duration.millis(500), circle);
+                finishScale.setFromX(1.0);
+                finishScale.setFromY(1.0);
+                finishScale.setToX(1.8);
+                finishScale.setToY(1.8);
+                finishScale.setCycleCount(Animation.INDEFINITE);
+                finishScale.setAutoReverse(true);
+                finishScale.play();
+
+                // ★ 회전 효과 추가
+                RotateTransition rotateTransition = new RotateTransition(Duration.millis(1000), circle);
+                rotateTransition.setByAngle(360);
+                rotateTransition.setCycleCount(Animation.INDEFINITE);
+                rotateTransition.play();
+
+                // ★ 특별한 투명도 변화 (더 빠르게)
+                FadeTransition finishFade = new FadeTransition(Duration.millis(300), circle);
+                finishFade.setFromValue(1.0);
+                finishFade.setToValue(0.3);
+                finishFade.setCycleCount(Animation.INDEFINITE);
+                finishFade.setAutoReverse(true);
+                finishFade.play();
+
+                // ★ 애니메이션들을 activeTransitions에 저장 (나중에 정리용)
+                activeTransitions.put(node, finishFade);
+
+            } else {
+                // 일반 노드는 기존 효과
+                circle.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.6));
+                circle.setStroke(Color.DODGERBLUE);
+                circle.setStrokeWidth(4.0);
+                circle.setRadius(20);
+
+                // 일반 깜빡임
+                FadeTransition fadeTransition = new FadeTransition(Duration.millis(800), circle);
+                fadeTransition.setFromValue(1.0);
+                fadeTransition.setToValue(0.4);
+                fadeTransition.setCycleCount(Animation.INDEFINITE);
+                fadeTransition.setAutoReverse(true);
+                fadeTransition.play();
+
+                // 일반 크기 변화
+                ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(800), circle);
+                scaleTransition.setFromX(1.0);
+                scaleTransition.setFromY(1.0);
+                scaleTransition.setToX(1.2);
+                scaleTransition.setToY(1.2);
+                scaleTransition.setCycleCount(Animation.INDEFINITE);
+                scaleTransition.setAutoReverse(true);
+                scaleTransition.play();
+
+                activeTransitions.put(node, fadeTransition);
+            }
+
             circle.toFront();
 
-            // ★ 수정: 클릭 영역을 더 크고 확실하게 만들기
-            Circle clickArea = new Circle(circle.getCenterX(), circle.getCenterY(), 30); // 더 크게
+            // 클릭 영역 생성 (기존과 동일)
+            Circle clickArea = new Circle(circle.getCenterX(), circle.getCenterY(), 30);
             clickArea.setFill(Color.TRANSPARENT);
             clickArea.setStroke(Color.TRANSPARENT);
             clickArea.setMouseTransparent(false);
             clickArea.setId("clickArea_" + node.getId());
 
-            // ★ 수정: 클릭 이벤트 강화 - Platform.runLater 사용
+            // 클릭 이벤트 (기존과 동일)
             clickArea.setOnMouseClicked(e -> {
                 System.out.println("!!! 클릭 영역 이벤트 발생 !!! 노드: " + node.getId());
-                System.out.println("!!! 이벤트 소스: " + e.getSource());
-                System.out.println("!!! 클릭 위치: (" + e.getX() + ", " + e.getY() + ")");
+                if (finishMode && node.getId().equals("START_NODE")) {
+                    System.out.println("!!! 🎉 완주 클릭 감지! 🎉 !!!");
+                }
 
                 if (nodeClickCallback != null) {
-                    System.out.println("!!! 콜백 실행 시작");
-
-                    // ★ 추가: Platform.runLater로 콜백 실행 지연
                     Platform.runLater(() -> {
                         try {
-                            // 애니메이션 중지
-                            fadeTransition.stop();
-                            scaleTransition.stop();
+                            // 모든 애니메이션 중지
+                            FadeTransition transition = activeTransitions.get(node);
+                            if (transition != null) {
+                                transition.stop();
+                            }
                             nodeClickCallback.accept(node);
-                            System.out.println("!!! 콜백 실행 완료");
                         } catch (Exception ex) {
-                            System.err.println("!!! 콜백 실행 중 오류: " + ex.getMessage());
+                            System.err.println("콜백 실행 중 오류: " + ex.getMessage());
                             ex.printStackTrace();
                         }
                     });
-                } else {
-                    System.out.println("!!! 콜백이 null");
                 }
                 e.consume();
             });
 
-            // ★ 마우스 호버 효과
-            clickArea.setOnMouseEntered(e -> {
-                System.out.println("### 마우스 진입: " + node.getId() + " (ID: " + clickArea.getId() + ")");
-                circle.setFill(Color.LIGHTGREEN.deriveColor(0, 1, 1, 0.8));
-                clickArea.setCursor(Cursor.HAND);
-            });
+            // ★ 특별한 호버 효과 (완주 모드)
+            if (finishMode && node.getId().equals("START_NODE")) {
+                clickArea.setOnMouseEntered(e -> {
+                    System.out.println("🌟 완주 노드 호버 진입!");
+                    circle.setFill(Color.LIME.deriveColor(0, 1, 1, 0.9));
+                    circle.setStrokeWidth(8.0);
+                    clickArea.setCursor(Cursor.HAND);
+                });
 
-            clickArea.setOnMouseExited(e -> {
-                System.out.println("### 마우스 종료: " + node.getId() + " (ID: " + clickArea.getId() + ")");
-                circle.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.6));
-            });
+                clickArea.setOnMouseExited(e -> {
+                    System.out.println("🌟 완주 노드 호버 종료!");
+                    // 무지개 효과 유지
+                    clickArea.setCursor(Cursor.HAND);
+                });
+            } else {
+                // 일반 호버 효과
+                clickArea.setOnMouseEntered(e -> {
+                    circle.setFill(Color.LIGHTGREEN.deriveColor(0, 1, 1, 0.8));
+                    clickArea.setCursor(Cursor.HAND);
+                });
+
+                clickArea.setOnMouseExited(e -> {
+                    circle.setFill(Color.LIGHTBLUE.deriveColor(0, 1, 1, 0.6));
+                });
+            }
 
             clickArea.setCursor(Cursor.HAND);
-            clickArea.toFront(); // 클릭 영역을 맨 앞에
-
-            // ★ 클릭 영역을 nodeLayer에 추가
+            clickArea.toFront();
             nodeLayer.getChildren().add(clickArea);
-            System.out.println(">>> 클릭 영역 추가됨: " + clickArea.getId() + " at (" + clickArea.getCenterX() + ", " + clickArea.getCenterY() + ")");
-
-            System.out.println(">>> 노드 처리 완료: " + node.getId());
         }
 
         System.out.println("=== highlightNodes 완료 ===");
-        System.out.println(">>> nodeLayer 자식 개수: " + nodeLayer.getChildren().size());
     }
 
     /**
