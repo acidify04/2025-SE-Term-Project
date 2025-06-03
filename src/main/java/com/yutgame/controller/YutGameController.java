@@ -28,7 +28,37 @@ public class YutGameController {
         // view.setController(this);
 
         // javaFX 선택 시
-        launch();
+//        launch();
+    }
+
+    /**
+     * JavaFX UI 실행
+     */
+    public void launchFX() {
+        // JavaFX 애플리케이션 실행
+        FXAppLauncher.launchApp(this);
+    }
+
+    /**
+     * Swing UI 실행
+     */
+    public void launchSwing() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                this.view = new SwingYutGameView();
+                view.setController(this);
+
+                // ★ 명시적으로 initializeGame 호출
+                initializeGame();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Swing UI 실행 중 오류가 발생했습니다: " + e.getMessage(),
+                        "오류",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 
     public void launch() {
@@ -37,6 +67,11 @@ public class YutGameController {
 
     // YutGameController.java
     public void initializeGame() {
+        if (view == null) {
+            System.err.println("View가 설정되지 않았습니다!");
+            return;
+        }
+
         view.setController(this);
 
         int players = view.getPlayerCount();

@@ -1,29 +1,34 @@
-/*  ───────────────────────────────────────────────────────────────
- *  Main.java ― 런처
- *  ▸ 기본값  : Swing UI 실행
- *  ▸ 옵션    : 프로그램 실행 시 인자에 "fx" 또는 "--fx" 가 있으면 JavaFX UI 실행
- *  ─────────────────────────────────────────────────────────────── */
 package main.java.com.yutgame;
 
 import main.java.com.yutgame.controller.YutGameController;
-import main.java.com.yutgame.view.fx.FXAppLauncher;            // JavaFX Application
-import javax.swing.SwingUtilities;
-import javafx.application.Application;
+import javax.swing.JOptionPane;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        YutGameController controller = new YutGameController();
-        // javaFX 호출 시 주석 제거
-        // controller.initializeGame();
+        // 사용자에게 UI 선택을 묻는 다이얼로그
+        String[] options = {"Swing UI", "JavaFX UI"};
+        int choice = JOptionPane.showOptionDialog(
+                null,
+                "어떤 UI를 사용하시겠습니까?",
+                "UI 선택",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
 
-        // swing 호출 시 주석 제거
-        /*
-        SwingUtilities.invokeLater(() -> {
-            controller.initializeGame();   // 내부에서 Swing View 호출
-        });
-         */
+        YutGameController controller = new YutGameController();
+
+        if (choice == 1) {
+            controller.launchFX();
+        } else {
+            controller.launchSwing();
+        }
+
+
 
     }
 }

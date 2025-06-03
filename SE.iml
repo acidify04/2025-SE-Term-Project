@@ -10,5 +10,15 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="lib" level="project" />
     <orderEntry type="library" exported="" name="junit.jupiter" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../openjfx-21.0.7_windows-x64_bin-sdk/javafx-sdk-21.0.7/lib" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/../../openjfx-21.0.7_windows-x64_bin-sdk/javafx-sdk-21.0.7/lib" recursive="false" />
+      </library>
+    </orderEntry>
   </component>
 </module>

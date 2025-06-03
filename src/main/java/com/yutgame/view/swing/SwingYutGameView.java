@@ -83,6 +83,12 @@ public class SwingYutGameView extends JFrame implements YutGameView {
         this.controller = controller;
         this.boardPanel = new BoardPanel(controller);
 
+        // ★ BoardPanel을 여기서 생성하고 추가
+        if (this.boardPanel != null) {
+            remove(this.boardPanel); // 기존 패널 제거
+        }
+
+        this.boardPanel = new BoardPanel(controller);
         add(boardPanel, BorderLayout.CENTER);
         revalidate();  // 레이아웃 다시 계산
         repaint();     // 화면 갱신
@@ -91,6 +97,16 @@ public class SwingYutGameView extends JFrame implements YutGameView {
     // SwingYutGameView.java
     @Override
     public void initBoardPanel() {
+        if (controller == null) {
+            System.err.println("Controller가 null입니다!");
+            return;
+        }
+
+        // 기존 BoardPanel 제거
+        if (this.boardPanel != null) {
+            remove(this.boardPanel);
+        }
+
         this.boardPanel = new BoardPanel(controller);
         add(boardPanel, BorderLayout.CENTER);
         revalidate();
