@@ -68,6 +68,7 @@ public class SwingYutGameView extends JFrame implements YutGameView {
         setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+        setLocationRelativeTo(null);
 
         JPanel topPanel = new JPanel();
         randomThrowButton = new JButton("랜덤 윷 던지기");
