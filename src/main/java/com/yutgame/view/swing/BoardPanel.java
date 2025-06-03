@@ -92,15 +92,15 @@ public class BoardPanel extends JPanel {
     }
 
     private void drawNode(Graphics g, BoardNode node) {
-        int x = node.getX(), y = node.getY();
+        int x = node.getX(), y = node.getY()+ yOffset;
         g.setColor(Color.LIGHT_GRAY);
-        g.fillOval(x, y + yOffset, NODE_SIZE, NODE_SIZE);
+        g.fillOval(x, y, NODE_SIZE, NODE_SIZE);
 
         g.setColor(Color.BLACK);
-        g.drawOval(x, y + yOffset, NODE_SIZE, NODE_SIZE);
+        g.drawOval(x, y, NODE_SIZE, NODE_SIZE);
 
         // 노드 ID 표시
-        g.drawString(node.getId(), x, y - 5 + yOffset);
+        g.drawString(node.getId(), x, y - 5);
     }
 
     private void drawPieces(Graphics g, BoardNode node) {
@@ -120,7 +120,7 @@ public class BoardPanel extends JPanel {
             };
 
             int px = node.getX() + 5 + (idx * 10);
-            int py = node.getY() + 5 + (idx * 10);
+            int py = node.getY() + yOffset + 5 + (idx * 10);
             g.drawImage(img, px, py, PIECE_SIZE, PIECE_SIZE, this);
             idx++;
         }
