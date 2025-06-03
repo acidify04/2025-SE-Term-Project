@@ -64,7 +64,8 @@ public class SwingYutGameView extends JFrame implements YutGameView {
 
         // --- UI 세팅 (기존 SwingYutGameView 생성자 본문) ---
         setTitle("Swing Yut Game");
-        setSize(700, 800);
+        setSize(550, 600);
+        setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -92,6 +93,20 @@ public class SwingYutGameView extends JFrame implements YutGameView {
         add(boardPanel, BorderLayout.CENTER);
         revalidate();  // 레이아웃 다시 계산
         repaint();     // 화면 갱신
+    }
+
+    private void updateBackgroundColor() {
+        String playerName = controller.getCurrentPlayer().getName();
+
+        switch (playerName) {
+            case "P1" -> setBackground(Color.decode("#C5EEF9"));
+            case "P2" -> setBackground(Color.decode("#F5CEEA"));
+            case "P3" -> setBackground(Color.decode("#CEF5CC"));
+            case "P4" -> setBackground(Color.decode("#F6F0D2"));
+            default -> setBackground(Color.WHITE);
+        }
+
+        repaint(); // 색 반영
     }
 
     // SwingYutGameView.java
