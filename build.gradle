@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+    id 'application' // 메인 클래스 지정 및 실행 지원
+    id 'org.openjfx.javafxplugin' version '0.1.0' // JavaFX 플러그인
+}
+
+group = 'com.yutgame'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+application {
+    // 애플리케이션의 주 진입점 클래스
+    mainClass = 'com.yutgame.Main'
+}
+
+javafx {
+    version = '21'
+    modules = [ 'javafx.controls', 'javafx.media', 'javafx.swing' ]
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes(
+                // 'Main-Class' 속성에 application 플러그인에 정의된 mainClass 값을 설정
+                'Main-Class': application.mainClass.get()
+        )
+    }
+
+     from {
+         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+     } {
+         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+     }
+}

@@ -1,4 +1,4 @@
-package main.java.com.yutgame;
+package com.yutgame;
 
 import main.java.com.yutgame.controller.YutGameController;
 import javax.swing.JOptionPane;
